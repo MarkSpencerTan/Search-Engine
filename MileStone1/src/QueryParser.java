@@ -24,21 +24,83 @@ public class QueryParser {
 
       //loops through the orsplit list
       for(int i=0; i< orsplit.length; i++){
-         String[] andmerge = splitQuotes(orsplit[i]);
+         String[] andmerge = splitQuotes(orsplit[i]); //splits on quotes and spaces
          for( int j =0; j<andmerge.length;j++){
-            andmerge[j] = dp.normalizeToken(andmerge[j]);
+            if (andmerge[j].split(" ").length==1)
+               andmerge[j] = dp.normalizeToken(andmerge[j]); //only normalize non phrases
          }
-
          //will contain document IDs of the current string in andMerge
-         List<Integer> ormerge = getDocList(index.getPostings(andmerge[0]));
+         List<Integer> ormerge;
+         if (andmerge[0].split(" ").length==1){
+            ormerge = getDocList(index.getPostings(andmerge[0]));
+
+         }
+         else  //parse phrase query on first element
+            ormerge =  phraseParser(andmerge[0].split(" "), index);
          // perform an and-merge on the doclist of each string in the list
          for(int j=1; j<andmerge.length; j++){
-            ormerge = andMerge(getDocList(index.getPostings(andmerge[j])), ormerge);
+            if (andmerge[j].split(" ").length==1)
+               ormerge = andMerge(getDocList(index.getPostings(andmerge[j])), ormerge);
+            else  //parse phrase query
+               ormerge =  andMerge(phraseParser(andmerge[j].split(" "), index), ormerge);
          }
          postings = orMerge(ormerge, postings);
-         System.out.println(postings);
       }
       return postings;
+   }
+
+   //Parses a basic Phrase Query/ Query surrounded by Double Quotes.
+   // @params : arr - the Phrase Query split into an array of Strings
+   private static List<Integer> phraseParser(String[] arr, PositionalInvertedIndex index){
+      DocumentProcessing dp = new DocumentProcessing();
+      List<Integer> result = new ArrayList<>();
+
+      arr[0] = dp.normalizeToken(arr[0]);
+      List<Integer> commondocs = getDocList(index.getPostings(arr[0]));
+      //normalize the phrases and And-Merge all the documents of each word in the phrase
+      for(int j=1; j<arr.length; j++){
+         arr[j] = dp.normalizeToken(arr[j]);
+         commondocs = andMerge(getDocList(index.getPostings(arr[j])), commondocs);
+      }
+      System.out.println(Arrays.toString(arr));
+      //loop through common documents
+      for(int j=0; j<commondocs.size();j++){
+         boolean matched = false;
+         //first word
+         List<Integer> pos1 = getPositions(index.getPostings(arr[0]), commondocs.get(j));
+         //loop through rest of the phrase array
+         for(Integer p : pos1){
+            int savednum = p+1;
+            for(int i=1; i<arr.length;i++){
+               List<Integer> pos2 = getPositions(index.getPostings(arr[i]), commondocs.get(j));
+
+               if(pos2.contains(savednum)){
+                  if(i==arr.length-1) { //if evaluating last word in the phrase array
+                     matched = true;
+                  }
+                  savednum++;
+               }
+               else
+                  break;
+            }
+            if(matched)
+               break; //if found a match, exit loop. no need to keep going.
+         }
+         if(matched){
+            result.add(commondocs.get(j));
+         }
+      }
+      return result;
+   }
+
+   //returns list of integer positions with the doc id as the param
+   private static List<Integer>getPositions(List<PositionArray> posarray, int docid){
+      List<Integer> list = null;
+      for(PositionArray p : posarray){
+         if (p.getDocID() == docid)
+            return p.getListofPos();
+      }
+      return list;
    }
 
    // Retrieves an Integer List from the List of Position Array containing ONLY Doc IDs
