@@ -19,14 +19,15 @@ public class QueryParser {
       DocumentProcessing dp = new DocumentProcessing();
       List<Integer> postings = new ArrayList<>(); //final merged postings list
       String[] orsplit = query.split("\\+"); //splits the query by + if there's any
-      for( int i =0; i<orsplit.length;i++){
-         orsplit[i] = dp.normalizeToken(orsplit[i]);
-      }
-      System.out.println(Arrays.toString(orsplit));
+
+      System.out.println("Parsed 1: "+ Arrays.toString(orsplit));
 
       //loops through the orsplit list
       for(int i=0; i< orsplit.length; i++){
          String[] andmerge = splitQuotes(orsplit[i]);
+         for( int j =0; j<andmerge.length;j++){
+            andmerge[j] = dp.normalizeToken(andmerge[j]);
+         }
 
          //will contain document IDs of the current string in andMerge
          List<Integer> ormerge = getDocList(index.getPostings(andmerge[0]));

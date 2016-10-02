@@ -70,7 +70,7 @@ public class SimpleEngine {
       // Main Querying Begins.
       // Ask the user to search for a term. Stops when user enters 'quit'
       Scanner scan = new Scanner(System.in);
-      String userinput = "";
+      String userinput;
       String[] mDictionary = index.getDictionary();
       DocumentProcessing processor = new DocumentProcessing();
 
@@ -95,7 +95,7 @@ public class SimpleEngine {
         		 String[] inputsize = userinput.split(" ");
         		 // we have exactly 2 word
         		 if(inputsize.length == 2){
-        			 String SearchBWord = inputsize[0]+" "+inputsize[1];
+        			 String SearchBWord = processor.normalizeToken(inputsize[0])+" "+processor.normalizeToken(inputsize[1]);
         			 System.out.print(SearchBWord+ ":   DocID List : ");
         			 System.out.println(bindex.getPostings(SearchBWord));
         			 continue;
