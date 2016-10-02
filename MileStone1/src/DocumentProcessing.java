@@ -38,13 +38,21 @@ public class DocumentProcessing {
 		return retTerm;
 	}
 
-	//Normalizes a regular token
+	//Normalizes a regular token for the QUERY
 	public String normalizeToken(String s){
 		s = RemoveAllApostropes(s);
 		s = RemoveAllNonAlphanumeric(s);
 		s = s.toLowerCase();
 		s = PorterStemmer.processToken(s);
 		s = s.replace("-", ""); //for querying userinput with hyphens
+		return s;
+	}
+	
+	//Normalizes INDEXED TOKEN
+	public String normalizeIndexedToken(String s){
+		s = RemoveAllApostropes(s);
+		s = RemoveAllNonAlphanumeric(s);
+		s = s.toLowerCase();
 		return s;
 	}
 }
