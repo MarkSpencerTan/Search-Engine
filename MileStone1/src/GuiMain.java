@@ -5,7 +5,9 @@ import javafx.scene.control.*;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.*;
+import javafx.stage.DirectoryChooser;
 import javafx.stage.Stage;
+import javafx.stage.Window;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -13,17 +15,18 @@ import java.io.IOException;
 import java.nio.file.*;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 public class GuiMain extends Application{
 
-   private static Button search, switchindex, switchbiword, switchmain;
+   private static Button search, porterbutton, switchindex, switchbiword, switchmain;
    private Stage window;
    private Scene mainscene, indexscene;
    private static String outputcontent = "";
    private static TextField searchbox;
    private static TextArea output;
-   final static Path currentWorkingPath = Paths.get("C:\\Users\\Mark\\Documents\\CSULB\\CECS_429 - Search Engine\\Homework\\Homework1\\MobyDick10Chapters").toAbsolutePath();
+   private static Path currentWorkingPath = Paths.get("C:\\Users\\Mark\\Documents\\CSULB\\CECS_429 - Search Engine\\Homework\\Homework1\\MobyDick10Chapters").toAbsolutePath();
    // the inverted index
    final static PositionalInvertedIndex index = new PositionalInvertedIndex();
    // the list of file names that were processed
@@ -34,6 +37,11 @@ public class GuiMain extends Application{
    //GUI STARTS HERE
    @Override
    public void start(Stage primaryStage) throws Exception{
+      // Choose Corpus Directory
+      currentWorkingPath = chooseFolder(currentWorkingPath.toFile());
+      // Index the Corpus
+      index();
+
       window = primaryStage;
       window.setTitle("Search Engine - Milestone 1");
 
@@ -99,20 +107,31 @@ public class GuiMain extends Application{
             }
          }
       });
-
+      //Button to porterstem a string
+      porterbutton = new Button("Porter Stem");
+      porterbutton.getStyleClass().add("buttons");
+      porterbutton.setOnAction(e -> {
+         // check for stem and quit command
+         String stemmed = PorterStemmer.processToken(searchbox.getText());
+         outputcontent += "\n\nPorter Stemming...\n" +
+                 searchbox.getText()+ " -> "+stemmed+"\n";
+         output.setText(outputcontent);
+      });
+      //Button to display positional index
       switchindex = new Button("Positional Index");
       switchindex.getStyleClass().add("buttons");
       switchindex.setOnAction(e -> {
          output.setText(printResults(index, fileNames));
 //         window.setScene(indexscene);
       });
+      //Button to display biword index
       switchbiword = new Button("Biword Index");
       switchbiword.getStyleClass().add("buttons");
       switchbiword.setOnAction(e -> {
          output.setText(printBiwordResults(bindex, fileNames));
       });
 
-      searchbar.getChildren().addAll(searchbox, search, switchindex, switchbiword);
+      searchbar.getChildren().addAll(searchbox, search, porterbutton, switchindex, switchbiword);
       searchbar.setId("bottombar");
       searchbar.setMinHeight(50);
       mainlayout.setBottom(searchbar);
@@ -130,57 +149,65 @@ public class GuiMain extends Application{
       indexlayout.getChildren().addAll(switchmain);
       indexscene = mainscene;
 
-
       //main
       window.setScene(mainscene);
       window.setResizable(false);
       window.show();
    }
+
    //Queries The User Input in the searchbar.
    private static void userQuery(){
       String userinput = searchbox.getText();
       outputcontent = "";
       DocumentProcessing processor = new DocumentProcessing();
       PorterStemmer porter = new PorterStemmer();
+      boolean biwordfail = true; // checks if biword finds the query
 
-      // check for stem and quit command
-      if(userinput.startsWith(":stem")){
-         String stemmed = porter.processToken(userinput.substring(6,userinput.length()));
-         outputcontent += " -> "+stemmed+"\n";
-      }
-      else{
-         // we have more than 1 word
-         if(userinput.contains(" ")){
-            String[] inputsize = userinput.split(" ");
-            // we have exactly 2 word
-            if(inputsize.length == 2){
-               String SearchBWord = processor.normalizeToken(inputsize[0])+" "+processor.normalizeToken(inputsize[1]);
-               outputcontent+="Searching Biword index...\n";
-               outputcontent+=SearchBWord+ ":\tDocID List : ";
-               outputcontent+=bindex.getPostings(SearchBWord);
-            }
+      // we have exactly 2 words, use biword index
+      if(userinput.split(" ").length == 2 ){
+         String[] inputsize = userinput.split(" ");
+         String SearchBWord = processor.normalizeToken(inputsize[0])+" "+processor.normalizeToken(inputsize[1]);
+         outputcontent+="Searching Biword index...\n";
+         outputcontent+=SearchBWord+ ":\tDocID List : ";
+         List<Integer> biword_results = bindex.getPostings(SearchBWord);
+         if(!biword_results.isEmpty()){ //if result of biword is not empty
+            biwordfail = false;
          }
-         // if we get here then it is not biword process with positional
+         outputcontent+=biword_results;
+      }
+
+      // otherwise, use positional inverted index
+      if(biwordfail) {
          List<Integer> results = QueryParser.parseQuery(userinput, index);
-         if(results.size()>0){
-            outputcontent+="\n"+userinput+" :";
-            for (Integer i : results ){
-               outputcontent+="\n\t"+fileNames.get(i);
+         if (results.size() > 0) {
+            outputcontent += "\n\nSearching Positional Inverted Index...\n" + userinput + " :";
+            for (Integer i : results) {
+               outputcontent += "\n\t" + fileNames.get(i);
             }
          }
-         else
-            outputcontent+="Term not found in the index";
       }
+      else
+         outputcontent+="Term not found in the index";
       output.setText(outputcontent);
+   }
+   // Shows up dialog box to choose corpus
+   public static Path chooseFolder(File file) {
+      DirectoryChooser directoryChooser = new DirectoryChooser();
+      directoryChooser.setTitle("Choose a Corpus");
+      if (file != null) {
+         directoryChooser.setInitialDirectory(file);
+      }
+      return directoryChooser.showDialog(null).toPath();
    }
 
    public static void main(String[] args) throws IOException{
-      index();
+
       launch(args);
    }
 
    public static void index()throws IOException{
       // This is our standard "walk through all .txt files" code.
+      System.out.println(currentWorkingPath);
       Files.walkFileTree(currentWorkingPath, new SimpleFileVisitor<Path>() {
          int mDocumentID  = 0;
 
@@ -204,6 +231,14 @@ public class GuiMain extends Application{
                indexFile(file.toFile(), index, mDocumentID, bindex);
                mDocumentID++;
             }
+            //if file is JSON
+            else if (file.toString().endsWith(".json")) {
+               System.out.println("Indexing JSON file: "+file.getFileName());
+               fileNames.add(file.getFileName().toString());
+               indexFile(file.toFile(), index, mDocumentID, bindex);
+               mDocumentID++;
+            }
+
             return FileVisitResult.CONTINUE;
          }
 
@@ -211,7 +246,6 @@ public class GuiMain extends Application{
          public FileVisitResult visitFileFailed(Path file, IOException e) {
             return FileVisitResult.CONTINUE;
          }
-
       });
    }
 
@@ -229,7 +263,23 @@ public class GuiMain extends Application{
       String Sterm = "";
 
       try {
-         SimpleTokenStream mTStream = new SimpleTokenStream(file);
+         TokenStream mTStream = new TokenStream() {
+            @Override
+            public String nextToken() {
+               return null;
+            }
+
+            @Override
+            public boolean hasNextToken() {
+               return false;
+            }
+         };
+         if(file.toString().endsWith(".txt")){
+            mTStream = new SimpleTokenStream(file);
+         }
+         if(file.toString().endsWith(".json")){
+            mTStream = new JsonTokenStream(file);
+         }
          PorterStemmer porter = new PorterStemmer();
          DocumentProcessing SimplifyTerm = new DocumentProcessing();
          while (mTStream.hasNextToken()){
