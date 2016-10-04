@@ -111,6 +111,7 @@ public class PorterStemmer {
    }
    
    public static String processToken(String token) {
+      token = token.toLowerCase();
       if (token.length() < 3) {
          return token; // token must be at least 3 chars
       }

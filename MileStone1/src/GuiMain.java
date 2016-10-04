@@ -1,13 +1,15 @@
 import javafx.application.Application;
 import javafx.event.EventHandler;
 import javafx.scene.Scene;
-import javafx.scene.control.*;
+import javafx.scene.control.Button;
+import javafx.scene.control.Label;
+import javafx.scene.control.TextArea;
+import javafx.scene.control.TextField;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.*;
 import javafx.stage.DirectoryChooser;
 import javafx.stage.Stage;
-import javafx.stage.Window;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -15,18 +17,18 @@ import java.io.IOException;
 import java.nio.file.*;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 public class GuiMain extends Application{
 
-   private static Button search, porterbutton, switchindex, switchbiword, switchmain;
+   private static Button search, porterbutton, switchindex;
+   private static Button vocab, changedir, switchbiword, switchmain, documentbutton;
    private Stage window;
    private Scene mainscene, indexscene;
    private static String outputcontent = "";
    private static TextField searchbox;
    private static TextArea output;
-   private static Path currentWorkingPath = Paths.get("C:\\Users\\Mark\\Documents\\CSULB\\CECS_429 - Search Engine\\Homework\\Homework1\\MobyDick10Chapters").toAbsolutePath();
+   private static Path currentWorkingPath = Paths.get("C:\\Users\\Mark\\Documents\\CSULB\\CECS_429 - Search Engine\\MileStone1\\Corpus Test").toAbsolutePath();
    // the inverted index
    final static PositionalInvertedIndex index = new PositionalInvertedIndex();
    // the list of file names that were processed
@@ -69,13 +71,14 @@ public class GuiMain extends Application{
       output.setEditable(false);
       output.getStyleClass().add("output");
 
-      Label preview = new Label("Document Preview:\n\n" +
+      TextArea preview = new TextArea("Document Preview:\n\n" +
               "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nam varius malesuada arcu," +
               " quis porttitor velit. Pellentesque rutrum justo id urna fringilla, et ullamcorper mauris vulputate. " +
               "Donec eu sapien dolor. Sed venenatis elit varius eros dictum, nec interdum lacus fringilla. " +
               "Fusce lacinia ante in efficitur vehicula. Sed sagittis tortor ut bibendum iaculis. Maecenas consequat" +
               " turpis sem, consectetur viverra est euismod et. Etiam viverra nibh vitae justo consectetur gravida. " +
               "Praesent nec neque non risus placerat convallis sed eu lorem. Cras convallis mattis ipsum, at ultricies nulla.");
+      preview.setEditable(false);
       preview.setWrapText(true);
       preview.getStyleClass().add("preview");
       preview.setMinSize(500,610);
@@ -117,6 +120,32 @@ public class GuiMain extends Application{
                  searchbox.getText()+ " -> "+stemmed+"\n";
          output.setText(outputcontent);
       });
+      //Button to preview a document
+      documentbutton = new Button("Document Preview");
+      documentbutton.getStyleClass().add("buttons");
+      documentbutton.setOnAction(e -> {
+         String filepath = currentWorkingPath + "\\"+searchbox.getText();
+         System.out.println(filepath);
+         preview.setText(BodyOutput.getBodyString(filepath));
+      });
+      //Button to index directory
+      changedir = new Button("Directory");
+      changedir.getStyleClass().add("buttons");
+      changedir.setOnAction(e -> {
+         chooseFolder(currentWorkingPath.toFile());
+         try{
+            index();
+         }catch(IOException ex){
+            System.out.println(ex.toString());
+         }
+      });
+      //Button to display vocabulary of index
+      vocab = new Button("Vocab");
+      vocab.getStyleClass().add("buttons");
+      vocab.setOnAction(e -> {
+         outputcontent = getVocab();
+         output.setText(outputcontent);
+      });
       //Button to display positional index
       switchindex = new Button("Positional Index");
       switchindex.getStyleClass().add("buttons");
@@ -131,7 +160,8 @@ public class GuiMain extends Application{
          output.setText(printBiwordResults(bindex, fileNames));
       });
 
-      searchbar.getChildren().addAll(searchbox, search, porterbutton, switchindex, switchbiword);
+      searchbar.getChildren().addAll(searchbox, search, porterbutton, documentbutton,
+              vocab, switchindex, switchbiword, changedir);
       searchbar.setId("bottombar");
       searchbar.setMinHeight(50);
       mainlayout.setBottom(searchbar);
@@ -158,40 +188,43 @@ public class GuiMain extends Application{
    //Queries The User Input in the searchbar.
    private static void userQuery(){
       String userinput = searchbox.getText();
-      outputcontent = "";
+      outputcontent = "Query: "+userinput+"\n\n";
       DocumentProcessing processor = new DocumentProcessing();
       PorterStemmer porter = new PorterStemmer();
       boolean biwordfail = true; // checks if biword finds the query
 
       // we have exactly 2 words, use biword index
+      List<Integer> results = new ArrayList<>();
       if(userinput.split(" ").length == 2 ){
          String[] inputsize = userinput.split(" ");
          String SearchBWord = processor.normalizeToken(inputsize[0])+" "+processor.normalizeToken(inputsize[1]);
-         outputcontent+="Searching Biword index...\n";
-         outputcontent+=SearchBWord+ ":\tDocID List : ";
-         List<Integer> biword_results = bindex.getPostings(SearchBWord);
-         if(!biword_results.isEmpty()){ //if result of biword is not empty
+         outputcontent+="\nSearching Biword index...\n";
+         outputcontent+=SearchBWord+ "\n\t";
+         results = bindex.getPostings(SearchBWord);
+         if (results!=null && results.size()>0) {
             biwordfail = false;
-         }
-         outputcontent+=biword_results;
-      }
-
-      // otherwise, use positional inverted index
-      if(biwordfail) {
-         List<Integer> results = QueryParser.parseQuery(userinput, index);
-         if (results.size() > 0) {
-            outputcontent += "\n\nSearching Positional Inverted Index...\n" + userinput + " :";
             for (Integer i : results) {
                outputcontent += "\n\t" + fileNames.get(i);
             }
          }
       }
-      else
-         outputcontent+="Term not found in the index";
+
+      // otherwise, use positional inverted index
+      if(biwordfail) {
+         results = QueryParser.parseQuery(userinput, index);
+         if (results.size() > 0) {
+            outputcontent += "\nSearching Positional Inverted Index...\n" + userinput + " :";
+            for (Integer i : results) {
+               outputcontent += "\n\t" + fileNames.get(i);
+            }
+         }
+      }
+      if(results.size()==0 || results==null)
+         outputcontent+="\n\tTerm not found in the index";
       output.setText(outputcontent);
    }
    // Shows up dialog box to choose corpus
-   public static Path chooseFolder(File file) {
+   private static Path chooseFolder(File file) {
       DirectoryChooser directoryChooser = new DirectoryChooser();
       directoryChooser.setTitle("Choose a Corpus");
       if (file != null) {
@@ -200,8 +233,18 @@ public class GuiMain extends Application{
       return directoryChooser.showDialog(null).toPath();
    }
 
-   public static void main(String[] args) throws IOException{
+   private static String getVocab(){
+      String[] dictionary = index.getDictionary();
+      int count = index.getTermCount();
+      String vocab = "Index Dictionary: \n";
+      for(String s : dictionary){
+         vocab += s + "\n";
+      }
+      vocab += "Index Term Count: " + count;
+      return vocab;
+   }
 
+   public static void main(String[] args) throws IOException{
       launch(args);
    }
 
@@ -278,7 +321,8 @@ public class GuiMain extends Application{
             mTStream = new SimpleTokenStream(file);
          }
          if(file.toString().endsWith(".json")){
-            mTStream = new JsonTokenStream(file);
+            String jsonbody = BodyOutput.getBodyString(file.toString());
+            mTStream = new SimpleTokenStream(jsonbody);
          }
          PorterStemmer porter = new PorterStemmer();
          DocumentProcessing SimplifyTerm = new DocumentProcessing();
