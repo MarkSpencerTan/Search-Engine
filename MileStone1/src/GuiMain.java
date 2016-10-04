@@ -121,7 +121,7 @@ public class GuiMain extends Application{
       documentbutton.setOnAction(e -> {
          String filepath = currentWorkingPath + "\\"+searchbox.getText();
          System.out.println(filepath);
-         preview.setText(BodyOutput.getBodyString(filepath));
+         preview.setText(BodyOutPut.getBodyString(filepath));
       });
       //Button to index directory
       changedir = new Button("Directory");
@@ -272,7 +272,7 @@ public class GuiMain extends Application{
                mDocumentID++;
             }
             //if file is JSON
-            else if (file.toString().endsWith(".json")) {
+            if (file.toString().endsWith(".json")) {
 //               System.out.println("Indexing JSON file: "+file.getFileName());
 //               System.out.println(mDocumentID);
                fileNames.add(file.getFileName().toString());
@@ -319,7 +319,7 @@ public class GuiMain extends Application{
             mTStream = new SimpleTokenStream(file);
          }
          if(file.toString().endsWith(".json")){
-            String jsonbody = BodyOutput.getBodyString(file.toString());
+            String jsonbody = BodyOutPut.getBodyString(file.toString());
             mTStream = new SimpleTokenStream(jsonbody);
          }
          PorterStemmer porter = new PorterStemmer();
