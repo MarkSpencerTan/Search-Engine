@@ -22,7 +22,7 @@ public class BiwordIndex {
 	         mList.add(documentID);
 	         mIndex.put( term , mList);
 	      }
-	      else if( !mIndex.get(term).contains(documentID) ){
+	      else if( !(mIndex.get(term).get(mIndex.get(term).size()-1)==documentID) ){
 	         mIndex.get(term).add(documentID);   //if it doesn't contain the docID, add it
 	      }
 	   }

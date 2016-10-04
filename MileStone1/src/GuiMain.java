@@ -28,7 +28,7 @@ public class GuiMain extends Application{
    private static String outputcontent = "";
    private static TextField searchbox;
    private static TextArea output;
-   private static Path currentWorkingPath = Paths.get("C:\\Users\\Mark\\Documents\\CSULB\\CECS_429 - Search Engine\\MileStone1\\Corpus Test").toAbsolutePath();
+   private static Path currentWorkingPath = Paths.get("C:\\Users\\Mark\\Documents\\CSULB\\CECS_429 - Search Engine\\Corpus15000").toAbsolutePath();
    // the inverted index
    final static PositionalInvertedIndex index = new PositionalInvertedIndex();
    // the list of file names that were processed
@@ -66,18 +66,13 @@ public class GuiMain extends Application{
       col2.setPercentWidth(50);
       middle.getColumnConstraints().addAll(col1,col2);
 
-      output = new TextArea("Search Vsion : \n ENTER USER QUERY BELOW");
+      output = new TextArea("Search Vsion : \n START USER QUERY BELOW");
       output.setMinSize(500,610);
       output.setEditable(false);
       output.getStyleClass().add("output");
 
       TextArea preview = new TextArea("Document Preview:\n\n" +
-              "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nam varius malesuada arcu," +
-              " quis porttitor velit. Pellentesque rutrum justo id urna fringilla, et ullamcorper mauris vulputate. " +
-              "Donec eu sapien dolor. Sed venenatis elit varius eros dictum, nec interdum lacus fringilla. " +
-              "Fusce lacinia ante in efficitur vehicula. Sed sagittis tortor ut bibendum iaculis. Maecenas consequat" +
-              " turpis sem, consectetur viverra est euismod et. Etiam viverra nibh vitae justo consectetur gravida. " +
-              "Praesent nec neque non risus placerat convallis sed eu lorem. Cras convallis mattis ipsum, at ultricies nulla.");
+              "Click on Document Preview button below");
       preview.setEditable(false);
       preview.setWrapText(true);
       preview.getStyleClass().add("preview");
@@ -132,7 +127,7 @@ public class GuiMain extends Application{
       changedir = new Button("Directory");
       changedir.getStyleClass().add("buttons");
       changedir.setOnAction(e -> {
-         chooseFolder(currentWorkingPath.toFile());
+         currentWorkingPath = chooseFolder(currentWorkingPath.toFile());
          try{
             index();
          }catch(IOException ex){
@@ -219,6 +214,7 @@ public class GuiMain extends Application{
             }
          }
       }
+      outputcontent += "\nResults Returned: "+ results.size();
       if(results.size()==0 || results==null)
          outputcontent+="\n\tTerm not found in the index";
       output.setText(outputcontent);
@@ -267,7 +263,8 @@ public class GuiMain extends Application{
             if (file.toString().endsWith(".txt")) {
                // we have found a .txt file; add its name to the fileName list,
                // then index the file and increase the document ID counter.
-               System.out.println("Indexing file " + file.getFileName());
+//               System.out.println("Indexing file " + file.getFileName());
+//               System.out.println(mDocumentID);
 
                fileNames.add(file.getFileName().toString());
                // how to get position of the term in the docid
@@ -276,7 +273,8 @@ public class GuiMain extends Application{
             }
             //if file is JSON
             else if (file.toString().endsWith(".json")) {
-               System.out.println("Indexing JSON file: "+file.getFileName());
+//               System.out.println("Indexing JSON file: "+file.getFileName());
+//               System.out.println(mDocumentID);
                fileNames.add(file.getFileName().toString());
                indexFile(file.toFile(), index, mDocumentID, bindex);
                mDocumentID++;

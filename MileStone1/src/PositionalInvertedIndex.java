@@ -39,7 +39,7 @@ public class PositionalInvertedIndex {
 
       // docid is not in the list of object
       else{
-         PositionArray	tempoj = new PositionArray();
+         PositionArray tempoj = new PositionArray();
          tempoj.setDocID(documentID);
          tempoj.getListofPos().add(termPosition);
          mIndex.get(term).add(tempoj);
