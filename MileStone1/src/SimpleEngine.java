@@ -1,18 +1,20 @@
 
-import javax.sound.sampled.Port;
-
-import java.io.*;
-import java.lang.reflect.Array;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.nio.file.*;
-import java.nio.file.attribute.*;
-import java.util.*;
+import java.nio.file.attribute.BasicFileAttributes;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Scanner;
 
 /**
-A very simple search engine. Uses an inverted index over a folder of TXT files.
+THIS IS THE PROGRAM WITHOUT GUI. Some parts of this code are not updated up to date.
+ Please use GuiMain instead.
 */
 public class SimpleEngine {
 
-   public static void main(String[] args) throws IOException {
+   public static void main2(String[] args) throws IOException {
       final Path currentWorkingPath = Paths.get("C:\\Users\\Mark\\Documents\\CSULB\\CECS_429 - Search Engine\\Homework\\Homework1\\MobyDick10Chapters").toAbsolutePath();
       
       // the inverted index
@@ -38,17 +40,12 @@ public class SimpleEngine {
             return FileVisitResult.SKIP_SUBTREE;
          }
 
-         public FileVisitResult visitFile(Path file,
-          BasicFileAttributes attrs) {
-            // only process .txt files
-            if (file.toString().endsWith(".txt")) {
-               // we have found a .txt file; add its name to the fileName list,
-               // then index the file and increase the document ID counter.
-               System.out.println("Indexing file " + file.getFileName());
-               
-               
+         public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) {
+            // we have found a .txt file or .json; add its name to the fileName list,
+            // then index the file and increase the document ID counter.
+            if (file.toString().endsWith(".json") || file.toString().endsWith(".txt")) {
+               System.out.println(mDocumentID);
                fileNames.add(file.getFileName().toString());
-               // how to get position of the term in the docid
                indexFile(file.toFile(), index, mDocumentID, bindex);
                mDocumentID++;
             }
@@ -141,9 +138,26 @@ public class SimpleEngine {
       boolean check = false;
       // special biterm for hyphen case 2 
       String Sterm = "";
-      
+
       try {
-         SimpleTokenStream mTStream = new SimpleTokenStream(file);
+         TokenStream mTStream = new TokenStream() {
+            @Override
+            public String nextToken() {
+               return null;
+            }
+
+            @Override
+            public boolean hasNextToken() {
+               return false;
+            }
+         };
+         if(file.toString().endsWith(".txt")){
+            mTStream = new SimpleTokenStream(file);
+         }
+         if(file.toString().endsWith(".json")){
+            String jsonbody = BodyOutPut.getBodyString(file.toString());
+            mTStream = new SimpleTokenStream(jsonbody);
+         }
          PorterStemmer porter = new PorterStemmer();
          DocumentProcessing SimplifyTerm = new DocumentProcessing();
          while (mTStream.hasNextToken()){        	

@@ -62,7 +62,6 @@ public class QueryParser {
          arr[j] = dp.normalizeToken(arr[j]);
          commondocs = andMerge(getDocList(index.getPostings(arr[j])), commondocs);
       }
-      System.out.println(Arrays.toString(arr));
       //loop through common documents
       for(int j=0; j<commondocs.size();j++){
          boolean matched = false;
@@ -103,7 +102,7 @@ public class QueryParser {
       return list;
    }
 
-   // Retrieves an Integer List from the List of Position Array containing ONLY Doc IDs
+   // Retrieves an Integer List from the List of Position Array containing just the Doc IDs
    private static List<Integer> getDocList(List<PositionArray> posarray){
       List<Integer> doclist = new ArrayList<>();
       if(posarray!=null) {

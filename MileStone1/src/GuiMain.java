@@ -30,11 +30,11 @@ public class GuiMain extends Application{
    private static TextArea output;
    private static Path currentWorkingPath = Paths.get("C:\\Users\\Mark\\Documents\\CSULB\\CECS_429 - Search Engine\\Corpus15000").toAbsolutePath();
    // the inverted index
-   final static PositionalInvertedIndex index = new PositionalInvertedIndex();
+   static PositionalInvertedIndex index = new PositionalInvertedIndex();
    // the list of file names that were processed
-   final static List<String> fileNames = new ArrayList<String>();
+   static List<String> fileNames = new ArrayList<String>();
    //the BiwordIndex
-   final static BiwordIndex bindex = new BiwordIndex();
+   static BiwordIndex bindex = new BiwordIndex();
 
    //GUI STARTS HERE
    @Override
@@ -90,10 +90,11 @@ public class GuiMain extends Application{
       search = new Button();
       search.setText("Search");
       search.getStyleClass().add("buttons");
+      //when user clicks on Search button.
       search.setOnAction(e -> {
          userQuery();
       });
-      //when user clicks enter to query...
+      //when user types enter to query...
       searchbox.setOnKeyPressed(new EventHandler<KeyEvent>()
       {
          @Override
@@ -109,13 +110,12 @@ public class GuiMain extends Application{
       porterbutton = new Button("Porter Stem");
       porterbutton.getStyleClass().add("buttons");
       porterbutton.setOnAction(e -> {
-         // check for stem and quit command
          String stemmed = PorterStemmer.processToken(searchbox.getText());
          outputcontent += "\n\nPorter Stemming...\n" +
                  searchbox.getText()+ " -> "+stemmed+"\n";
          output.setText(outputcontent);
       });
-      //Button to preview a document
+      //Button to preview a document. Enter document name in searchbar.
       documentbutton = new Button("Document Preview");
       documentbutton.getStyleClass().add("buttons");
       documentbutton.setOnAction(e -> {
@@ -123,7 +123,7 @@ public class GuiMain extends Application{
          System.out.println(filepath);
          preview.setText(BodyOutPut.getBodyString(filepath));
       });
-      //Button to index directory
+      //Button to select a new corpus directory
       changedir = new Button("Directory");
       changedir.getStyleClass().add("buttons");
       changedir.setOnAction(e -> {
@@ -199,7 +199,10 @@ public class GuiMain extends Application{
          if (results!=null && results.size()>0) {
             biwordfail = false;
             for (Integer i : results) {
-               outputcontent += "\n\t" + fileNames.get(i);
+               //commented this out because it's slowing down the query process.
+               // will print to console instead of gui console.
+               //outputcontent += "\n\t" + fileNames.get(i);
+               System.out.println(fileNames.get(i));
             }
          }
       }
@@ -210,7 +213,10 @@ public class GuiMain extends Application{
          if (results.size() > 0) {
             outputcontent += "\nSearching Positional Inverted Index...\n" + userinput + " :";
             for (Integer i : results) {
-               outputcontent += "\n\t" + fileNames.get(i);
+               //commented this out because it's slowing down the query process.
+               // will print to console instead of gui console
+               //outputcontent += "\n\t" + fileNames.get(i);
+               System.out.println(fileNames.get(i));
             }
          }
       }
@@ -219,8 +225,12 @@ public class GuiMain extends Application{
          outputcontent+="\n\tTerm not found in the index";
       output.setText(outputcontent);
    }
+
    // Shows up dialog box to choose corpus
    private static Path chooseFolder(File file) {
+      index = new PositionalInvertedIndex();
+      bindex = new BiwordIndex();
+      fileNames = new ArrayList<>();
       DirectoryChooser directoryChooser = new DirectoryChooser();
       directoryChooser.setTitle("Choose a Corpus");
       if (file != null) {
@@ -229,6 +239,7 @@ public class GuiMain extends Application{
       return directoryChooser.showDialog(null).toPath();
    }
 
+   // Get vocabulary of index and also count of total terms
    private static String getVocab(){
       String[] dictionary = index.getDictionary();
       int count = index.getTermCount();
@@ -259,27 +270,14 @@ public class GuiMain extends Application{
          }
 
          public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) {
-            // only process .txt files
-            if (file.toString().endsWith(".txt")) {
-               // we have found a .txt file; add its name to the fileName list,
+               // we have found a .txt file or .json; add its name to the fileName list,
                // then index the file and increase the document ID counter.
-//               System.out.println("Indexing file " + file.getFileName());
-//               System.out.println(mDocumentID);
-
-               fileNames.add(file.getFileName().toString());
-               // how to get position of the term in the docid
-               indexFile(file.toFile(), index, mDocumentID, bindex);
-               mDocumentID++;
-            }
-            //if file is JSON
-            if (file.toString().endsWith(".json")) {
-//               System.out.println("Indexing JSON file: "+file.getFileName());
-//               System.out.println(mDocumentID);
+            if (file.toString().endsWith(".json") || file.toString().endsWith(".txt")) {
+               System.out.println(mDocumentID);
                fileNames.add(file.getFileName().toString());
                indexFile(file.toFile(), index, mDocumentID, bindex);
                mDocumentID++;
             }
-
             return FileVisitResult.CONTINUE;
          }
 
@@ -378,14 +376,15 @@ public class GuiMain extends Application{
                Sterm = Sterm.trim();
                // ADD TO BIWORD INDEX
                Bindex.addTerm(Sterm, docID);
+
                // reset STERM back to empty string FOR NEXT LOOP AROUND
                Sterm = "";
                // end here loop around at while
                continue;
             }
             index.addTerm( porter.processToken(term), docID, Position);
-            Position++;
 
+            Position++;
             // execute at the first read (1st term)
             // only execute 1 time first word
             if(counter == 0 && check == false){
@@ -414,7 +413,7 @@ public class GuiMain extends Application{
    }
 
    private static String printResults(PositionalInvertedIndex index, List<String> fileNames) {
-      // print the inverted index.
+      // print the inverted index. For testing only
       String printed = "";
       String[] mDictionary = index.getDictionary();
       for (String s : mDictionary){
@@ -428,7 +427,7 @@ public class GuiMain extends Application{
    }
 
    private static String printBiwordResults(BiwordIndex biword, List<String> fileNames) {
-      // print the Biwordindex.
+      // print the Biwordindex. For testing only
       String printed = "";
       String[] mDictionary = biword.getDictionary();
       for (String s : mDictionary){
