@@ -25,7 +25,7 @@ public class GuiMain extends Application{
    private static Button vocab, changedir, switchbiword, switchmain, documentbutton;
    private Stage window;
    private Scene mainscene, indexscene;
-   private static String outputcontent = "";
+   private static StringBuffer outputcontent = new StringBuffer();
    private static TextField searchbox;
    private static TextArea output;
    private static Path currentWorkingPath = Paths.get("C:\\Users\\Mark\\Documents\\CSULB\\CECS_429 - Search Engine\\Corpus15000").toAbsolutePath();
@@ -111,9 +111,9 @@ public class GuiMain extends Application{
       porterbutton.getStyleClass().add("buttons");
       porterbutton.setOnAction(e -> {
          String stemmed = PorterStemmer.processToken(searchbox.getText());
-         outputcontent += "\n\nPorter Stemming...\n" +
-                 searchbox.getText()+ " -> "+stemmed+"\n";
-         output.setText(outputcontent);
+         outputcontent.append("\n\nPorter Stemming...\n" +
+                 searchbox.getText()+ " -> "+stemmed+"\n");
+         output.setText(outputcontent.toString());
       });
       //Button to preview a document. Enter document name in searchbar.
       documentbutton = new Button("Document Preview");
@@ -138,8 +138,8 @@ public class GuiMain extends Application{
       vocab = new Button("Vocab");
       vocab.getStyleClass().add("buttons");
       vocab.setOnAction(e -> {
-         outputcontent = getVocab();
-         output.setText(outputcontent);
+         outputcontent = new StringBuffer(getVocab());
+         output.setText(outputcontent.toString());
       });
       //Button to display positional index
       switchindex = new Button("Positional Index");
@@ -183,7 +183,7 @@ public class GuiMain extends Application{
    //Queries The User Input in the searchbar.
    private static void userQuery(){
       String userinput = searchbox.getText();
-      outputcontent = "Query: "+userinput+"\n\n";
+      outputcontent = new StringBuffer("Query: "+userinput+"\n\n");
       DocumentProcessing processor = new DocumentProcessing();
       PorterStemmer porter = new PorterStemmer();
       boolean biwordfail = true; // checks if biword finds the query
@@ -193,16 +193,13 @@ public class GuiMain extends Application{
       if(userinput.split(" ").length == 2 ){
          String[] inputsize = userinput.split(" ");
          String SearchBWord = processor.normalizeToken(inputsize[0])+" "+processor.normalizeToken(inputsize[1]);
-         outputcontent+="\nSearching Biword index...\n";
-         outputcontent+=SearchBWord+ "\n\t";
+         outputcontent.append("\nSearching Biword index...\n");
+         outputcontent.append(SearchBWord+ "\n\t");
          results = bindex.getPostings(SearchBWord);
          if (results!=null && results.size()>0) {
             biwordfail = false;
             for (Integer i : results) {
-               //commented this out because it's slowing down the query process.
-               // will print to console instead of gui console.
-               //outputcontent += "\n\t" + fileNames.get(i);
-               System.out.println(fileNames.get(i));
+               outputcontent.append("\n"+fileNames.get(i));
             }
          }
       }
@@ -211,19 +208,16 @@ public class GuiMain extends Application{
       if(biwordfail) {
          results = QueryParser.parseQuery(userinput, index);
          if (results.size() > 0) {
-            outputcontent += "\nSearching Positional Inverted Index...\n" + userinput + " :";
+            outputcontent.append("\nSearching Positional Inverted Index...\n" + userinput + " :");
             for (Integer i : results) {
-               //commented this out because it's slowing down the query process.
-               // will print to console instead of gui console
-               //outputcontent += "\n\t" + fileNames.get(i);
-               System.out.println(fileNames.get(i));
+               outputcontent.append("\n"+fileNames.get(i));
             }
          }
       }
-      outputcontent += "\nResults Returned: "+ results.size();
+      outputcontent.append("\nResults Returned: "+ results.size());
       if(results.size()==0 || results==null)
-         outputcontent+="\n\tTerm not found in the index";
-      output.setText(outputcontent);
+         outputcontent.append("\n\tTerm not found in the index");
+      output.setText(outputcontent.toString());
    }
 
    // Shows up dialog box to choose corpus
