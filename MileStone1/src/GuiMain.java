@@ -24,11 +24,11 @@ public class GuiMain extends Application{
    private static Button search, porterbutton, switchindex;
    private static Button vocab, changedir, switchbiword, switchmain, documentbutton;
    private Stage window;
-   private Scene mainscene, indexscene;
+   private Scene mainscene;
    private static StringBuffer outputcontent = new StringBuffer();
    private static TextField searchbox;
    private static TextArea output;
-   private static Path currentWorkingPath = Paths.get("C:\\Users\\Mark\\Documents\\CSULB\\CECS_429 - Search Engine\\Corpus15000").toAbsolutePath();
+   private static Path currentWorkingPath = Paths.get("C:\\Users\\").toAbsolutePath();
    // the inverted index
    static PositionalInvertedIndex index = new PositionalInvertedIndex();
    // the list of file names that were processed
@@ -146,7 +146,6 @@ public class GuiMain extends Application{
       switchindex.getStyleClass().add("buttons");
       switchindex.setOnAction(e -> {
          output.setText(printResults(index, fileNames));
-//         window.setScene(indexscene);
       });
       //Button to display biword index
       switchbiword = new Button("Biword Index");
@@ -156,7 +155,7 @@ public class GuiMain extends Application{
       });
 
       searchbar.getChildren().addAll(searchbox, search, porterbutton, documentbutton,
-              vocab, switchindex, switchbiword, changedir);
+              vocab, changedir);
       searchbar.setId("bottombar");
       searchbar.setMinHeight(50);
       mainlayout.setBottom(searchbar);
@@ -172,7 +171,6 @@ public class GuiMain extends Application{
       switchmain.setOnAction(e -> window.setScene(mainscene));
 
       indexlayout.getChildren().addAll(switchmain);
-      indexscene = mainscene;
 
       //main
       window.setScene(mainscene);
@@ -237,12 +235,12 @@ public class GuiMain extends Application{
    private static String getVocab(){
       String[] dictionary = index.getDictionary();
       int count = index.getTermCount();
-      String vocab = "Index Dictionary: \n";
+      StringBuffer vocab = new StringBuffer("Index Dictionary: \n");
       for(String s : dictionary){
-         vocab += s + "\n";
+         vocab.append(s + "\n");
       }
-      vocab += "Index Term Count: " + count;
-      return vocab;
+      vocab.append("Index Term Count: " + count);
+      return vocab.toString();
    }
 
    public static void main(String[] args) throws IOException{
@@ -252,6 +250,7 @@ public class GuiMain extends Application{
    public static void index()throws IOException{
       // This is our standard "walk through all .txt files" code.
       System.out.println(currentWorkingPath);
+      System.out.println("Indexing Corpus...");
       Files.walkFileTree(currentWorkingPath, new SimpleFileVisitor<Path>() {
          int mDocumentID  = 0;
 
@@ -267,7 +266,6 @@ public class GuiMain extends Application{
                // we have found a .txt file or .json; add its name to the fileName list,
                // then index the file and increase the document ID counter.
             if (file.toString().endsWith(".json") || file.toString().endsWith(".txt")) {
-               System.out.println(mDocumentID);
                fileNames.add(file.getFileName().toString());
                indexFile(file.toFile(), index, mDocumentID, bindex);
                mDocumentID++;
@@ -339,7 +337,8 @@ public class GuiMain extends Application{
 
                // PROCESS THE COMBINED TERM FIRST FOR BOTH POSITIONAL AND BIWORD
                // add combined term in POSITIONAL INDEX
-               index.addTerm(porter.processToken(fulterm), docID, Position);
+               if(fulterm.trim().length()>0)
+                  index.addTerm(porter.processToken(fulterm), docID, Position);
 
                // add combined term in BIWORD INDEX
                // execute 1 time only for 1 case that is
@@ -352,7 +351,8 @@ public class GuiMain extends Application{
                // and all other hyphen term
                else{
                   Biterm = porter.processToken(Biterm)+" "+porter.processToken(fulterm);
-                  Bindex.addTerm(Biterm, docID);
+                  if(Biterm.trim().length() > 0) //checks for whitespaces
+                     Bindex.addTerm(Biterm, docID);
                   Biterm = fulterm;
                   counter = 0;
                   check = true;
@@ -360,23 +360,29 @@ public class GuiMain extends Application{
 
                // NOW MOVE ON TO THE SPLITTED PORTION
                for(int i = 0; i < listterm.length; i++){
-                  // add to POSITIONAL INDEX
-                  index.addTerm(porter.processToken(listterm[i]), docID, Position);
+                  String temp = porter.processToken(listterm[i]);
+                  // add to POSITIONAL INDEX if no whitespaces
+                  if(temp.trim().length()>0)
+                     index.addTerm(temp, docID, Position);
                   // APPEND THE 2 WORD WITH SPACE AT THE END
-                  Sterm = Sterm+porter.processToken(listterm[i])+" ";
+                  Sterm = Sterm + temp + " ";
                   Position++;
                }
                // NOW TRIM THE TRAILING SPACE
                Sterm = Sterm.trim();
                // ADD TO BIWORD INDEX
-               Bindex.addTerm(Sterm, docID);
+               if(Sterm.trim().length() > 0)
+                  Bindex.addTerm(Sterm, docID);
 
                // reset STERM back to empty string FOR NEXT LOOP AROUND
                Sterm = "";
                // end here loop around at while
                continue;
             }
-            index.addTerm( porter.processToken(term), docID, Position);
+            //checks whether token is just all whitespaces
+            if(term.trim().length()>0) {
+               index.addTerm(porter.processToken(term), docID, Position);
+            }
 
             Position++;
             // execute at the first read (1st term)
@@ -389,13 +395,15 @@ public class GuiMain extends Application{
             // remaining Biterm
             else if(counter == 0 && check == true){
                Biterm = porter.processToken(Biterm)+" "+porter.processToken(term);
-               Bindex.addTerm(Biterm, docID);
+               if(Biterm.trim().length() > 0)
+                  Bindex.addTerm(Biterm, docID);
                Biterm = term;
             }
             // second term also only execute 1 time
             else {
                Biterm = porter.processToken(Biterm)+" "+porter.processToken(term);
-               Bindex.addTerm(Biterm, docID);
+               if(Biterm.trim().length() > 0)
+                  Bindex.addTerm(Biterm, docID);
                Biterm = term;
                counter = 0;
                check = true;
@@ -406,31 +414,32 @@ public class GuiMain extends Application{
       }
    }
 
+   //Prints out the Positional Inverted Index. WARNING: Will load extremely slow for a large corpus
    private static String printResults(PositionalInvertedIndex index, List<String> fileNames) {
       // print the inverted index. For testing only
-      String printed = "";
+      StringBuffer printed = new StringBuffer();
       String[] mDictionary = index.getDictionary();
       for (String s : mDictionary){
-         printed+=s+":\n";
+         printed.append(s+":\n");
          for (PositionArray i : index.getPostings(s) ){
-            printed+="\t\t\t"+fileNames.get(i.getDocID());
-            printed+="\t\t\t"+ i.getListofPos()+"\n";
+            printed.append("\t\t\t"+fileNames.get(i.getDocID()));
+            printed.append("\t\t\t"+ i.getListofPos()+"\n");
          }
       }
-      return printed;
+      return printed.toString();
    }
-
+   //Prints out the BiWord Index. WARNING: Will load extremely slow for a large corpus
    private static String printBiwordResults(BiwordIndex biword, List<String> fileNames) {
       // print the Biwordindex. For testing only
-      String printed = "";
+      StringBuffer printed = new StringBuffer();
       String[] mDictionary = biword.getDictionary();
       for (String s : mDictionary){
-         printed += s+":\n";
+         printed.append(s+":\n");
          for (Integer i : biword.getPostings(s) ){
-            printed += "\t\t\t"+ fileNames.get(i)+"\n";
+            printed.append("\t\t\t"+ fileNames.get(i)+"\n");
          }
       }
-      return printed;
+      return printed.toString();
    }
 
 
