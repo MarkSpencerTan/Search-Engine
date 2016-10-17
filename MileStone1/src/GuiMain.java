@@ -28,6 +28,7 @@ public class GuiMain extends Application{
    private static StringBuffer outputcontent = new StringBuffer();
    private static TextField searchbox;
    private static TextArea output;
+   //set this to the current path of your default corpus.
    private static Path currentWorkingPath = Paths.get("C:\\Users\\").toAbsolutePath();
    // the inverted index
    static PositionalInvertedIndex index = new PositionalInvertedIndex();

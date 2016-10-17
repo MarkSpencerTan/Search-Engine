@@ -5,10 +5,7 @@ import java.util.regex.Pattern;
 public class QueryParser {
 
    PositionalInvertedIndex index;
-
-   public QueryParser(){
-      System.out.println("Parser made for Testing Only");
-   }
+   public QueryParser(){};
 
    public QueryParser(PositionalInvertedIndex index){
       this.index = index;
@@ -20,30 +17,30 @@ public class QueryParser {
       List<Integer> postings = new ArrayList<>(); //final merged postings list
       String[] orsplit = query.split("\\+"); //splits the query by + if there's any
 
-      System.out.println("Parsed 1: "+ Arrays.toString(orsplit));
-
       //loops through the orsplit list
       for(int i=0; i< orsplit.length; i++){
-         String[] andmerge = splitQuotes(orsplit[i]); //splits on quotes and spaces
-         for( int j =0; j<andmerge.length;j++){
-            if (andmerge[j].split(" ").length==1)
-               andmerge[j] = dp.normalizeToken(andmerge[j]); //only normalize non phrases
+         String[] andsplit = splitQuotes(orsplit[i]); //splits each element from orsplit on quotes and spaces
+         for( int j =0; j<andsplit.length;j++){
+            if (andsplit[j].split(" ").length==1)
+               andsplit[j] = dp.normalizeToken(andsplit[j]); //only normalize non phrases
          }
-         //will contain document IDs of the current string in andMerge
-         List<Integer> ormerge;
-         if (andmerge[0].split(" ").length==1){
-            ormerge = getDocList(index.getPostings(andmerge[0]));
 
+         //will contain document IDs of the current string in andsplit
+         List<Integer> ormerge;
+         if (andsplit[0].split(" ").length==1){
+            ormerge = getDocList(index.getPostings(andsplit[0]));
          }
-         else  //parse phrase query on first element
-            ormerge =  phraseParser(andmerge[0].split(" "), index);
-         // perform an and-merge on the doclist of each string in the list
-         for(int j=1; j<andmerge.length; j++){
-            if (andmerge[j].split(" ").length==1)
-               ormerge = andMerge(getDocList(index.getPostings(andmerge[j])), ormerge);
+         else
+            ormerge =  phraseParser(andsplit[0].split(" "), index);  // phrase detected in andsplit
+
+         // perform an and-merge on the doclist of each string in andsplit
+         for(int j=1; j<andsplit.length; j++){
+            if (andsplit[j].split(" ").length==1)
+               ormerge = andMerge(getDocList(index.getPostings(andsplit[j])), ormerge);
             else  //parse phrase query
-               ormerge =  andMerge(phraseParser(andmerge[j].split(" "), index), ormerge);
+               ormerge =  andMerge(phraseParser(andsplit[j].split(" "), index), ormerge);
          }
+         //
          postings = orMerge(ormerge, postings);
       }
       return postings;
@@ -136,7 +133,7 @@ public class QueryParser {
       else{
          int pos1 = 0 , pos2 = 0; //current positions of each list
          while( pos1 < list1.size() && pos2 < list2.size() ){
-            if (list1.get(pos1) == list2.get(pos2)) {
+            if (list1.get(pos1).equals(list2.get(pos2))) {
                merged.add(list1.get(pos1));
                pos1++;
                pos2++;
@@ -153,7 +150,7 @@ public class QueryParser {
       return merged;
    }
 
-   private static List<Integer> orMerge(List<Integer> list1, List<Integer> list2){
+   public static List<Integer> orMerge(List<Integer> list1, List<Integer> list2){
       List<Integer> merged = new ArrayList<>();
 
       //if one list is null, return the other.
@@ -166,34 +163,23 @@ public class QueryParser {
       else {
          int pos1 = 0, pos2 = 0; //current positions of each list
          while (pos1 < list1.size() && pos2 < list2.size()) {
-            if (list1.get(pos1) == list2.get(pos2)) {
+            if (list1.get(pos1).equals(list2.get(pos2))) {
                merged.add(list1.get(pos1));
                pos1++;
                pos2++;
             } else if (list1.get(pos1) < list2.get(pos2)) {
-
                merged.add(list1.get(pos1));
                pos1++;
-            } else {
-
+            } else if (list1.get(pos1) > list2.get(pos2)){
                merged.add(list2.get(pos2));
                pos2++;
             }
          }
-         // loop ends and lists have the same size. compare positions.
-         // add the rest of the one that ended on a smaller position.
-         if(list1.size() == list2.size()){
-            if (pos1 < pos2) {
-               merged.addAll(list1.subList(pos1, list1.size()));
-            } else if (pos1 > pos2) {
-               merged.addAll(list2.subList(pos2, list2.size()));
-            }
-         }
-         // loop ends and one list is bigger than the other.
-         // add the remaining of the longer list.
-         else if (list1.size() < list2.size()) {
+         // loop ends and add the rest of the list that was not fully iterated yet
+         if(pos1 == list1.size()){
             merged.addAll(list2.subList(pos2, list2.size()));
-         } else if (list1.size() > list2.size()) {
+         }
+         else if (pos2==list2.size()){
             merged.addAll(list1.subList(pos1, list1.size()));
          }
       }
