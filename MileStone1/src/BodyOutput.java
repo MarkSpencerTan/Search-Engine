@@ -3,7 +3,7 @@ import com.google.gson.JsonParser;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 
-public class BodyOutPut {
+public class BodyOutput {
    //This converts a JSON file to a string containing only the body
    public static String getBodyString (String JsonfileName){
       String retString = "";

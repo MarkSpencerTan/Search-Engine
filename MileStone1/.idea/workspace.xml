@@ -44,12 +44,14 @@
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="BodyOutPut.java" pinned="false" current-in-tab="true">
-        <entry file="file://$PROJECT_DIR$/src/BodyOutPut.java">
+      <file leaf-file-name="BodyOutput.java" pinned="false" current-in-tab="true">
+        <entry file="file://$PROJECT_DIR$/src/BodyOutput.java">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="22">
-              <caret line="1" column="34" selection-start-line="1" selection-start-column="34" selection-end-line="1" selection-end-column="34" />
-              <folding />
+            <state relative-caret-position="396">
+              <caret line="18" column="1" selection-start-line="18" selection-start-column="1" selection-end-line="18" selection-end-column="1" />
+              <folding>
+                <element signature="imports" expanded="true" />
+              </folding>
             </state>
           </provider>
         </entry>
@@ -122,7 +124,6 @@
         <option value="$PROJECT_DIR$/src/style.css" />
         <option value="$PROJECT_DIR$/src/JsonTokenStream.java" />
         <option value="$PROJECT_DIR$/src/PorterStemmer.java" />
-        <option value="$PROJECT_DIR$/src/BodyOutput.java" />
         <option value="$USER_HOME$/.IdeaIC2016/idea.exe.vmoptions" />
         <option value="$PROJECT_DIR$/src/PositionalInvertedIndex.java" />
         <option value="$PROJECT_DIR$/src/DocumentProcessing.java" />
@@ -134,6 +135,7 @@
         <option value="$PROJECT_DIR$/src/QueryParser.java" />
         <option value="$PROJECT_DIR$/src/GuiMain.java" />
         <option value="$PROJECT_DIR$/src/BodyOutPut.java" />
+        <option value="$PROJECT_DIR$/src/BodyOutput.java" />
       </list>
     </option>
   </component>
@@ -858,11 +860,13 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/src/BodyOutPut.java">
+    <entry file="file://$PROJECT_DIR$/src/BodyOutput.java">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="22">
-          <caret line="1" column="34" selection-start-line="1" selection-start-column="34" selection-end-line="1" selection-end-column="34" />
-          <folding />
+        <state relative-caret-position="396">
+          <caret line="18" column="1" selection-start-line="18" selection-start-column="1" selection-end-line="18" selection-end-column="1" />
+          <folding>
+            <element signature="imports" expanded="true" />
+          </folding>
         </state>
       </provider>
     </entry>
