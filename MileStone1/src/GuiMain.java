@@ -29,7 +29,7 @@ public class GuiMain extends Application{
    private static TextField searchbox;
    private static TextArea output;
    //set this to the current path of your default corpus.
-   private static Path currentWorkingPath = Paths.get("C:\\Users\\").toAbsolutePath();
+   private static Path currentWorkingPath = Paths.get(System.getProperty("user.dir")).toAbsolutePath();
    // the inverted index
    static PositionalInvertedIndex index = new PositionalInvertedIndex();
    // the list of file names that were processed
