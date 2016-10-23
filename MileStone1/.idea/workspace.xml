@@ -34,8 +34,8 @@
       <file leaf-file-name="GuiMain.java" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/src/GuiMain.java">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="542">
-              <caret line="35" column="59" selection-start-line="35" selection-start-column="59" selection-end-line="35" selection-end-column="59" />
+            <state relative-caret-position="172">
+              <caret line="22" column="0" selection-start-line="22" selection-start-column="0" selection-end-line="22" selection-end-column="0" />
               <folding>
                 <element signature="imports" expanded="true" />
                 <element signature="e#1369#1377#0" expanded="true" />
@@ -47,8 +47,8 @@
       <file leaf-file-name="BodyOutput.java" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/src/BodyOutput.java">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="396">
-              <caret line="18" column="1" selection-start-line="18" selection-start-column="1" selection-end-line="18" selection-end-column="1" />
+            <state relative-caret-position="132">
+              <caret line="6" column="72" selection-start-line="6" selection-start-column="72" selection-end-line="6" selection-end-column="72" />
               <folding>
                 <element signature="imports" expanded="true" />
               </folding>
@@ -133,8 +133,8 @@
         <option value="$PROJECT_DIR$/src/IndexWriter.java" />
         <option value="$PROJECT_DIR$/src/ParseTester.java" />
         <option value="$PROJECT_DIR$/src/QueryParser.java" />
-        <option value="$PROJECT_DIR$/src/GuiMain.java" />
         <option value="$PROJECT_DIR$/src/BodyOutPut.java" />
+        <option value="$PROJECT_DIR$/src/GuiMain.java" />
         <option value="$PROJECT_DIR$/src/BodyOutput.java" />
       </list>
     </option>
@@ -851,8 +851,8 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/src/GuiMain.java">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="542">
-          <caret line="35" column="59" selection-start-line="35" selection-start-column="59" selection-end-line="35" selection-end-column="59" />
+        <state relative-caret-position="172">
+          <caret line="22" column="0" selection-start-line="22" selection-start-column="0" selection-end-line="22" selection-end-column="0" />
           <folding>
             <element signature="imports" expanded="true" />
             <element signature="e#1369#1377#0" expanded="true" />
@@ -862,8 +862,8 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/src/BodyOutput.java">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="396">
-          <caret line="18" column="1" selection-start-line="18" selection-start-column="1" selection-end-line="18" selection-end-column="1" />
+        <state relative-caret-position="132">
+          <caret line="6" column="72" selection-start-line="6" selection-start-column="72" selection-end-line="6" selection-end-column="72" />
           <folding>
             <element signature="imports" expanded="true" />
           </folding>

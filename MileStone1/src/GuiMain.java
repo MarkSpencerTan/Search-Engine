@@ -122,7 +122,7 @@ public class GuiMain extends Application{
       documentbutton.setOnAction(e -> {
          String filepath = currentWorkingPath + "\\"+searchbox.getText();
          System.out.println(filepath);
-         preview.setText(BodyOutPut.getBodyString(filepath));
+         preview.setText(BodyOutput.getBodyString(filepath));
       });
       //Button to select a new corpus directory
       changedir = new Button("Directory");
@@ -310,7 +310,7 @@ public class GuiMain extends Application{
             mTStream = new SimpleTokenStream(file);
          }
          if(file.toString().endsWith(".json")){
-            String jsonbody = BodyOutPut.getBodyString(file.toString());
+            String jsonbody = BodyOutput.getBodyString(file.toString());
             mTStream = new SimpleTokenStream(jsonbody);
          }
          PorterStemmer porter = new PorterStemmer();

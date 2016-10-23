@@ -4,7 +4,7 @@ import java.io.FileNotFoundException;
 import java.io.FileReader;
 
 public class BodyOutput {
-   //This converts a JSON file to a string containing only the body
+   //This converts a JSON file to a string containing only the body text
    public static String getBodyString (String JsonfileName){
       String retString = "";
       try {
