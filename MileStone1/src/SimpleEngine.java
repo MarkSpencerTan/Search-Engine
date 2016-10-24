@@ -87,29 +87,30 @@ public class SimpleEngine {
          }
          else{
 
-        	 // we have more than 1 word
-        	 if(userinput.contains(" ")){
-        		 String[] inputsize = userinput.split(" ");
-        		 // we have exactly 2 word
-        		 if(inputsize.length == 2){
-        			 String SearchBWord = processor.normalizeToken(inputsize[0])+" "+processor.normalizeToken(inputsize[1]);
-        			 System.out.print(SearchBWord+ ":   DocID List : ");
-        			 System.out.println(bindex.getPostings(SearchBWord));
-        			 continue;
-        		 }
-        	 }
-        	 // if we get here then it is not biword process with positional
-             List<Integer> results = QueryParser.parseQuery(userinput, index);
-             if(results.size()>0){
-                System.out.printf("%-15s  ", userinput+":");
-                for (Integer i : results ){
-                   System.out.printf("%-15s", fileNames.get(i));
-                   System.out.printf("%-18s", "\n");
-                }
-                System.out.print("\n");
+            // we have more than 1 word
+            if(userinput.contains(" ")){
+             String[] inputsize = userinput.split(" ");
+             // we have exactly 2 word
+             if(inputsize.length == 2){
+                String SearchBWord = processor.normalizeToken(inputsize[0])+" "+processor.normalizeToken(inputsize[1]);
+                System.out.print(SearchBWord+ ":   DocID List : ");
+                System.out.println(bindex.getPostings(SearchBWord));
+                continue;
              }
-             else
-                System.out.println("Term not found in the index");
+            }
+            // if we get here then it is not biword process with positional
+
+            List<Integer> results = QueryParser.parseQuery(userinput, index);
+            if(results.size()>0){
+               System.out.printf("%-15s  ", userinput+":");
+               for (Integer i : results ){
+                  System.out.printf("%-15s", fileNames.get(i));
+                  System.out.printf("%-18s", "\n");
+               }
+               System.out.print("\n");
+            }
+            else
+               System.out.println("Term not found in the index");
          }
        } while ( !userinput.equals(":quit") );
       
@@ -155,7 +156,7 @@ public class SimpleEngine {
             mTStream = new SimpleTokenStream(file);
          }
          if(file.toString().endsWith(".json")){
-            String jsonbody = BodyOutPut.getBodyString(file.toString());
+            String jsonbody = BodyOutput.getBodyString(file.toString());
             mTStream = new SimpleTokenStream(jsonbody);
          }
          PorterStemmer porter = new PorterStemmer();

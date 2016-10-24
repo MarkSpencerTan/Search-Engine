@@ -4,13 +4,6 @@ import java.util.regex.Pattern;
 
 public class QueryParser {
 
-   PositionalInvertedIndex index;
-   public QueryParser(){};
-
-   public QueryParser(PositionalInvertedIndex index){
-      this.index = index;
-   }
-
    //Will Return a list of integers corresponding to the document ID's that matched the query.
    public static List<Integer> parseQuery(String query, PositionalInvertedIndex index){
       DocumentProcessing dp = new DocumentProcessing();
@@ -48,7 +41,7 @@ public class QueryParser {
 
    //Parses a basic Phrase Query/ Query surrounded by Double Quotes.
    // @params : arr - the Phrase Query split into an array of Strings
-   private static List<Integer> phraseParser(String[] arr, PositionalInvertedIndex index){
+   protected static List<Integer> phraseParser(String[] arr, PositionalInvertedIndex index){
       DocumentProcessing dp = new DocumentProcessing();
       List<Integer> result = new ArrayList<>();
 
@@ -90,7 +83,7 @@ public class QueryParser {
    }
 
    //returns list of integer positions with the doc id as the param
-   private static List<Integer>getPositions(List<PositionArray> posarray, int docid){
+   protected static List<Integer>getPositions(List<PositionArray> posarray, int docid){
       List<Integer> list = null;
       for(PositionArray p : posarray){
          if (p.getDocID() == docid)
@@ -100,7 +93,7 @@ public class QueryParser {
    }
 
    // Retrieves an Integer List from the List of Position Array containing just the Doc IDs
-   private static List<Integer> getDocList(List<PositionArray> posarray){
+   protected static List<Integer> getDocList(List<PositionArray> posarray){
       List<Integer> doclist = new ArrayList<>();
       if(posarray!=null) {
          for (PositionArray p : posarray) {
@@ -111,7 +104,7 @@ public class QueryParser {
    }
 
    //Splits query phrase into a String[] by surrounding quotes and spaces.
-   private static String[] splitQuotes(String s){
+   protected static String[] splitQuotes(String s){
       List<String> list = new ArrayList<String>();
       Matcher m = Pattern.compile("[^\\s\"']+|\"([^\"]*)\"|'([^']*)'").matcher(s);
       while (m.find()) {
@@ -120,7 +113,7 @@ public class QueryParser {
       return list.toArray(new String[list.size()]);
    }
 
-   private static List<Integer> andMerge(List<Integer> list1, List<Integer> list2){
+   protected static List<Integer> andMerge(List<Integer> list1, List<Integer> list2){
       List<Integer> merged = new ArrayList<>();
 
       //if one list is null, return the other.
@@ -150,7 +143,7 @@ public class QueryParser {
       return merged;
    }
 
-   public static List<Integer> orMerge(List<Integer> list1, List<Integer> list2){
+   protected static List<Integer> orMerge(List<Integer> list1, List<Integer> list2){
       List<Integer> merged = new ArrayList<>();
 
       //if one list is null, return the other.

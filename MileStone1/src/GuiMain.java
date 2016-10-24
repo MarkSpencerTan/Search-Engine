@@ -1,10 +1,7 @@
 import javafx.application.Application;
 import javafx.event.EventHandler;
 import javafx.scene.Scene;
-import javafx.scene.control.Button;
-import javafx.scene.control.Label;
-import javafx.scene.control.TextArea;
-import javafx.scene.control.TextField;
+import javafx.scene.control.*;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.*;
@@ -18,6 +15,7 @@ import java.nio.file.*;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 public class GuiMain extends Application{
 
@@ -28,8 +26,15 @@ public class GuiMain extends Application{
    private static StringBuffer outputcontent = new StringBuffer();
    private static TextField searchbox;
    private static TextArea output;
+
    //set this to the current path of your default corpus.
    private static Path currentWorkingPath = Paths.get(System.getProperty("user.dir")).toAbsolutePath();
+
+   //list of modes available
+   private final String[] modelist = {"Boolean", "Ranked"};
+   private final String[] indexmodelist = {"Build a Disk Index", "Load Existing Disk Index"};
+   private static boolean isRanked = false;
+
    // the inverted index
    static PositionalInvertedIndex index = new PositionalInvertedIndex();
    // the list of file names that were processed
@@ -40,9 +45,19 @@ public class GuiMain extends Application{
    //GUI STARTS HERE
    @Override
    public void start(Stage primaryStage) throws Exception{
+
+      // Dialog Box to choose Querying mode 1)Boolean Retrieval 2) Ranked retrieval
+      Dialog modes = new ChoiceDialog<>(modelist[0], modelist);
+      modes.setTitle("Vsion Search Mode Selector");
+      modes.setHeaderText(null);
+      modes.setResizable(true);
+      modes.getDialogPane().setPrefSize(350, 120);
+      modes.setContentText("Select a Mode: ");
+      chooseQueryMode(modes);
+
       // Choose Corpus Directory
       currentWorkingPath = chooseFolder(currentWorkingPath.toFile());
-      // Index the Corpus
+      // Index the Corpus Normally
       index();
 
       window = primaryStage;
@@ -91,11 +106,11 @@ public class GuiMain extends Application{
       search = new Button();
       search.setText("Search");
       search.getStyleClass().add("buttons");
-      //when user clicks on Search button.
+      //when user clicks on Search button it queries based on query mode
       search.setOnAction(e -> {
          userQuery();
       });
-      //when user types enter to query...
+      // Queries when enter is pressed on the search bar
       searchbox.setOnKeyPressed(new EventHandler<KeyEvent>()
       {
          @Override
@@ -103,10 +118,11 @@ public class GuiMain extends Application{
          {
             if (ke.getCode().equals(KeyCode.ENTER))
             {
-               userQuery();
+               search.fire();
             }
          }
       });
+
       //Button to porterstem a string
       porterbutton = new Button("Porter Stem");
       porterbutton.getStyleClass().add("buttons");
@@ -184,11 +200,13 @@ public class GuiMain extends Application{
       String userinput = searchbox.getText();
       outputcontent = new StringBuffer("Query: "+userinput+"\n\n");
       DocumentProcessing processor = new DocumentProcessing();
-      PorterStemmer porter = new PorterStemmer();
       boolean biwordfail = true; // checks if biword finds the query
 
-      // we have exactly 2 words, use biword index
       List<Integer> results = new ArrayList<>();
+      // Ranked results is a List of  List<DocID, score>
+      List<ScoredDocument> rankedresults = new ArrayList<>();
+
+      // we have exactly 2 words, use biword index
       if(userinput.split(" ").length == 2 ){
          String[] inputsize = userinput.split(" ");
          String SearchBWord = processor.normalizeToken(inputsize[0])+" "+processor.normalizeToken(inputsize[1]);
@@ -205,44 +223,40 @@ public class GuiMain extends Application{
 
       // otherwise, use positional inverted index
       if(biwordfail) {
-         results = QueryParser.parseQuery(userinput, index);
+         // choose querying mode accordingly
+         if (isRanked){
+            rankedresults = RankedQueryParser.rankDocuments(userinput, index);
+         }
+         //regular boolean query
+         else
+            results = QueryParser.parseQuery(userinput, index);
+
          if (results.size() > 0) {
             outputcontent.append("\nSearching Positional Inverted Index...\n" + userinput + " :");
             for (Integer i : results) {
                outputcontent.append("\n"+fileNames.get(i));
             }
          }
+         else if(rankedresults.size() > 0){
+            outputcontent.append("\nSearching Positional Inverted Index (ranked)...\n" + userinput + " :");
+            for (ScoredDocument i : rankedresults) {
+               outputcontent.append("\n"+fileNames.get(i.getId()) +"\t\tScore: "+ i.getScore());
+            }
+         }
       }
-      outputcontent.append("\nResults Returned: "+ results.size());
-      if(results.size()==0 || results==null)
-         outputcontent.append("\n\tTerm not found in the index");
+      if(isRanked)
+         outputcontent.append("\nResults Returned: "+ rankedresults.size());
+      else
+         outputcontent.append("\nResults Returned: "+ results.size());
+
+      //if no results are found
+      if(results.size()==0 && rankedresults.size()==0)
+         outputcontent.append("\n\tNo Results Found.");
+
       output.setText(outputcontent.toString());
    }
 
-   // Shows up dialog box to choose corpus
-   private static Path chooseFolder(File file) {
-      index = new PositionalInvertedIndex();
-      bindex = new BiwordIndex();
-      fileNames = new ArrayList<>();
-      DirectoryChooser directoryChooser = new DirectoryChooser();
-      directoryChooser.setTitle("Choose a Corpus");
-      if (file != null) {
-         directoryChooser.setInitialDirectory(file);
-      }
-      return directoryChooser.showDialog(null).toPath();
-   }
 
-   // Get vocabulary of index and also count of total terms
-   private static String getVocab(){
-      String[] dictionary = index.getDictionary();
-      int count = index.getTermCount();
-      StringBuffer vocab = new StringBuffer("Index Dictionary: \n");
-      for(String s : dictionary){
-         vocab.append(s + "\n");
-      }
-      vocab.append("Index Term Count: " + count);
-      return vocab.toString();
-   }
 
    public static void main(String[] args) throws IOException{
       launch(args);
@@ -415,6 +429,8 @@ public class GuiMain extends Application{
       }
    }
 
+   // Methods for UI Buttons and Functionality
+
    //Prints out the Positional Inverted Index. WARNING: Will load extremely slow for a large corpus
    private static String printResults(PositionalInvertedIndex index, List<String> fileNames) {
       // print the inverted index. For testing only
@@ -441,6 +457,51 @@ public class GuiMain extends Application{
          }
       }
       return printed.toString();
+   }
+
+   // Dialogbox that makes user choose ranked or boolean mode
+   private static void chooseQueryMode(Dialog modes){
+      Optional<String> result = modes.showAndWait();
+      String selected = "cancelled";
+
+      if(result.isPresent()){
+         selected = result.get();   // retrieves user selection from dialog
+      }
+
+      if(selected.equals("Ranked")){
+         System.out.println("You Selected Ranked Retrieval...");
+         isRanked = true;
+      }
+      else if(selected.equals("Boolean")){
+         System.out.println("You Selected Boolean Retrieval...");
+         isRanked = false;
+      }
+   }
+
+
+   // Shows up dialog box to choose corpus
+   private static Path chooseFolder(File file) {
+      index = new PositionalInvertedIndex();
+      bindex = new BiwordIndex();
+      fileNames = new ArrayList<>();
+      DirectoryChooser directoryChooser = new DirectoryChooser();
+      directoryChooser.setTitle("Choose a Corpus");
+      if (file != null) {
+         directoryChooser.setInitialDirectory(file);
+      }
+      return directoryChooser.showDialog(null).toPath();
+   }
+
+   // Get vocabulary of index and also count of total terms
+   private static String getVocab(){
+      String[] dictionary = index.getDictionary();
+      int count = index.getTermCount();
+      StringBuffer vocab = new StringBuffer("Index Dictionary: \n");
+      for(String s : dictionary){
+         vocab.append(s + "\n");
+      }
+      vocab.append("Index Term Count: " + count);
+      return vocab.toString();
    }
 
 
