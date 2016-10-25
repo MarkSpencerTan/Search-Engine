@@ -3,8 +3,8 @@
  */
 public class ScoredDocument {
    private int docId;
-   private float score;
-   public ScoredDocument(int id, float s){
+   private double score;
+   public ScoredDocument(int id, double s){
       docId = id;
       score = s;
    }
@@ -13,7 +13,7 @@ public class ScoredDocument {
       return docId;
    }
 
-   public float getScore(){
+   public double getScore(){
       return score;
    }
 }

@@ -141,7 +141,7 @@ public class GuiMain extends Application{
          preview.setText(BodyOutput.getBodyString(filepath));
       });
       //Button to select a new corpus directory
-      changedir = new Button("Directory");
+      changedir = new Button("Change Corpus");
       changedir.getStyleClass().add("buttons");
       changedir.setOnAction(e -> {
          currentWorkingPath = chooseFolder(currentWorkingPath.toFile());
@@ -200,6 +200,7 @@ public class GuiMain extends Application{
       String userinput = searchbox.getText();
       outputcontent = new StringBuffer("Query: "+userinput+"\n\n");
       DocumentProcessing processor = new DocumentProcessing();
+      RankedQueryParser rankedparser = new RankedQueryParser(index, fileNames.size());
       boolean biwordfail = true; // checks if biword finds the query
 
       List<Integer> results = new ArrayList<>();
@@ -225,13 +226,13 @@ public class GuiMain extends Application{
       if(biwordfail) {
          // choose querying mode accordingly
          if (isRanked){
-            rankedresults = RankedQueryParser.rankDocuments(userinput, index);
+            rankedresults = rankedparser.rankDocuments(userinput);
          }
          //regular boolean query
          else
             results = QueryParser.parseQuery(userinput, index);
 
-         if (results.size() > 0) {
+         if (results!=null && results.size() > 0) {
             outputcontent.append("\nSearching Positional Inverted Index...\n" + userinput + " :");
             for (Integer i : results) {
                outputcontent.append("\n"+fileNames.get(i));
@@ -250,17 +251,17 @@ public class GuiMain extends Application{
          outputcontent.append("\nResults Returned: "+ results.size());
 
       //if no results are found
-      if(results.size()==0 && rankedresults.size()==0)
+      if(results == null || (results.isEmpty()&& rankedresults.isEmpty()))
          outputcontent.append("\n\tNo Results Found.");
 
       output.setText(outputcontent.toString());
    }
 
 
-
    public static void main(String[] args) throws IOException{
       launch(args);
    }
+
 
    public static void index()throws IOException{
       // This is our standard "walk through all .txt files" code.
@@ -353,12 +354,12 @@ public class GuiMain extends Application{
                // PROCESS THE COMBINED TERM FIRST FOR BOTH POSITIONAL AND BIWORD
                // add combined term in POSITIONAL INDEX
                if(fulterm.trim().length()>0)
-                  index.addTerm(porter.processToken(fulterm), docID, Position);
+                  index.addTerm(PorterStemmer.processToken(fulterm), docID, Position);
 
                // add combined term in BIWORD INDEX
                // execute 1 time only for 1 case that is
                // we have 1st term in file as a hyphen term
-               if(counter == 0 && check == false){
+               if(counter == 0 && !check){
                   Biterm = fulterm;
                   counter++;
                }
@@ -402,7 +403,7 @@ public class GuiMain extends Application{
             Position++;
             // execute at the first read (1st term)
             // only execute 1 time first word
-            if(counter == 0 && check == false){
+            if(counter == 0 && !check){
                Biterm = term;
                counter++;
             }
@@ -477,7 +478,6 @@ public class GuiMain extends Application{
          isRanked = false;
       }
    }
-
 
    // Shows up dialog box to choose corpus
    private static Path chooseFolder(File file) {
