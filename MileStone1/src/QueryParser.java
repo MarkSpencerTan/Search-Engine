@@ -5,7 +5,7 @@ import java.util.regex.Pattern;
 public class QueryParser {
 
    //Will Return a list of integers corresponding to the document ID's that matched the query.
-   public static List<Integer> parseQuery(String query, PositionalInvertedIndex index){
+   public static List<Integer> parseQuery(String query, DiskInvertedIndex index){
       DocumentProcessing dp = new DocumentProcessing();
       List<Integer> postings = new ArrayList<>(); //final merged postings list
       String[] orsplit = query.split("\\+"); //splits the query by + if there's any
@@ -21,7 +21,7 @@ public class QueryParser {
          //will contain document IDs of the current string in andsplit
          List<Integer> ormerge;
          if (andsplit[0].split(" ").length==1){
-            ormerge = getDocList(index.getPostings(andsplit[0]));
+            ormerge = index.getPostings(andsplit[0]).getDocs();
          }
          else
             ormerge =  phraseParser(andsplit[0].split(" "), index);  // phrase detected in andsplit
@@ -29,7 +29,7 @@ public class QueryParser {
          // perform an and-merge on the doclist of each string in andsplit
          for(int j=1; j<andsplit.length; j++){
             if (andsplit[j].split(" ").length==1)
-               ormerge = andMerge(getDocList(index.getPostings(andsplit[j])), ormerge);
+               ormerge = andMerge(index.getPostings(andsplit[j]).getDocs(), ormerge);
             else  //parse phrase query
                ormerge =  andMerge(phraseParser(andsplit[j].split(" "), index), ormerge);
          }
@@ -41,16 +41,16 @@ public class QueryParser {
 
    //Parses a basic Phrase Query/ Query surrounded by Double Quotes.
    // @params : arr - the Phrase Query split into an array of Strings
-   protected static List<Integer> phraseParser(String[] arr, PositionalInvertedIndex index){
+   protected static List<Integer> phraseParser(String[] arr, DiskInvertedIndex index){
       DocumentProcessing dp = new DocumentProcessing();
       List<Integer> result = new ArrayList<>();
 
       arr[0] = dp.normalizeToken(arr[0]);
-      List<Integer> commondocs = getDocList(index.getPostings(arr[0]));
+      List<Integer> commondocs = index.getPostings(arr[0]).getDocs();
       //normalize the phrases and And-Merge all the documents of each word in the phrase
       for(int j=1; j<arr.length; j++){
          arr[j] = dp.normalizeToken(arr[j]);
-         commondocs = andMerge(getDocList(index.getPostings(arr[j])), commondocs);
+         commondocs = andMerge(index.getPostings(arr[j]).getDocs(), commondocs);
       }
       //loop through common documents
       for(int j=0; j<commondocs.size();j++){
@@ -83,24 +83,12 @@ public class QueryParser {
    }
 
    //returns list of integer positions with the doc id as the param
-   protected static List<Integer>getPositions(List<PositionArray> posarray, int docid){
-      List<Integer> list = null;
-      for(PositionArray p : posarray){
-         if (p.getDocID() == docid)
-            return p.getListofPos();
+   protected static List<Integer> getPositions(PostingResult posting, int docid){
+      List<Integer> list = new ArrayList<>();
+      for(int i : posting.getPosition(docid)){
+         list.add(i);
       }
       return list;
-   }
-
-   // Retrieves an Integer List from the List of Position Array containing just the Doc IDs
-   protected static List<Integer> getDocList(List<PositionArray> posarray){
-      List<Integer> doclist = new ArrayList<>();
-      if(posarray!=null) {
-         for (PositionArray p : posarray) {
-            doclist.add(p.getDocID()); //fills ormerge list with doc ids
-         }
-      }
-      return doclist;
    }
 
    //Splits query phrase into a String[] by surrounding quotes and spaces.

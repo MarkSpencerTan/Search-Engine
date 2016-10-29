@@ -3,9 +3,9 @@ import java.util.*;
 public class RankedQueryParser extends QueryParser {
    private static DocumentProcessing dp = new DocumentProcessing();
    private static double size;
-   private static PositionalInvertedIndex index;
+   private static DiskInvertedIndex index;
 
-   public RankedQueryParser(PositionalInvertedIndex i, double corpus_size){
+   public RankedQueryParser(DiskInvertedIndex i, double corpus_size){
       index = i;
       size = corpus_size;
    }
@@ -35,7 +35,7 @@ public class RankedQueryParser extends QueryParser {
 
       // Results is a sublist of the corpus that is a list of documents that contain
       // at least one of the terms in the query.
-      List<Integer> results = orQuery(query);
+      List<Integer> results = orQuery(terms);
 
       for(int docId : results){
          //score each document
@@ -57,72 +57,42 @@ public class RankedQueryParser extends QueryParser {
    //Scores a document
    private static double score(int docId, String[] terms){
       double ad=0;  //accumulator
-      double Ld = 0;
 
       for(String term : terms){
          double Wqt =0;
-         List<PositionArray> postings = index.getPostings(term);
-
-         // Wqt = (ln(1 + N/(Amount of Documents the term appeared in))
-         if(index.getPostings(term)!=null) {
-            Wqt = Math.log(1 + (size / postings.size()));
-         }
-         // Tftd = Term frequency in the document
-         double tftd = 0;
          double Wdt =0;
+         PostingResult postings = index.getPostings(term);
+
          if(postings!=null) {
-            for (PositionArray pos : postings) {
-               if (pos.getDocID() == docId) {
-                  tftd = pos.getListofPos().size();
-                  Wdt = 1 + Math.log(tftd);
-               }
+            // Wqt = (ln(1 + N/(Amount of Documents the term appeared in))
+            Wqt = Math.log(1 + (size / postings.size()));
+
+            int[] pos = postings.getPosition(docId);
+            if(pos!=null){
+               // Tftd = Term frequency in the document
+               double tftd = pos.length;
+               Wdt = 1 + Math.log(tftd);
             }
          }
+         // increment the accumulator value
          ad += Wqt * Wdt;
       }
-      //set Ld to getWeights method that will read the weight of a document from docWeights.bin file.
-      Ld = 1;
-      if(Ld != 0) {
-         ad /= Ld;
-         return ad;
-      }
-      return 0;
+      //Ld is the weight of the document
+      double Ld = index.readWeightFromFile(docId);
+
+      ad /= Ld;
+      return ad;
    }
 
    //retrieves a list of documents that have at least 1 of the terms in the query
-   private static List<Integer> orQuery(String query){
-      DocumentProcessing dp = new DocumentProcessing();
+   private static List<Integer> orQuery(String[] query){
       List<Integer> postings = new ArrayList<>();     //final merged postings list
-      String[] orsplit = query.split("\\+");    //splits the query by + if there's any
 
-      //loops through the orsplit list
-      for(int i=0; i< orsplit.length; i++){
-         String[] andsplit = splitQuotes(orsplit[i]); //splits each element from orsplit on quotes and spaces
-
-         // Normalizes items on orsplit, only if it's not a phrase
-         for( int j =0; j<andsplit.length;j++){
-            if (andsplit[j].split(" ").length==1)
-               andsplit[j] = dp.normalizeToken(andsplit[j]);
-         }
-
-         //will contain document IDs of the current string in andsplit
-         List<Integer> ormerge;
-         if (andsplit[0].split(" ").length==1){
-            ormerge = getDocList(index.getPostings(andsplit[0]));    // single word found, get postings list
-         }
-         else
-            ormerge =  phraseParser(andsplit[0].split(" "), index);  // phrase detected in andsplit, use phraseparser
-
-         // perform an or-merge on the doclist of each string in andsplit
-         for(int j=1; j<andsplit.length; j++){
-            if (andsplit[j].split(" ").length==1)
-               ormerge = orMerge(getDocList(index.getPostings(andsplit[j])), ormerge);
-            else  //parse phrase query
-               ormerge =  orMerge(phraseParser(andsplit[j].split(" "), index), ormerge);
-         }
-         // Or-merge the final lists together
-         postings = orMerge(ormerge, postings);
+      for(String s : query){
+         if(index.getPostings(s)!=null)
+            postings = orMerge(postings, index.getPostings(s).getDocs());
       }
+
       return postings;
    }
 }

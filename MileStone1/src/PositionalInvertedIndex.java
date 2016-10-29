@@ -3,9 +3,12 @@ import java.util.*;
 
 public class PositionalInvertedIndex {
    private HashMap<String, List<PositionArray>> mIndex;
+   private HashMap<String, Integer> weighttable;
+   private ArrayList<Double> weightlist = new ArrayList();
 
    public PositionalInvertedIndex() {
       mIndex = new HashMap<String, List<PositionArray>>();
+      weighttable = new HashMap<>();
    }
 
    public void addTerm(String term, int documentID, int termPosition) {
@@ -62,5 +65,41 @@ public class PositionalInvertedIndex {
       String[] mDictionary = mIndex.keySet().toArray(new String[getTermCount()]);
       Arrays.sort(mDictionary);
       return mDictionary;
+   }
+
+   public void addWeight(String term){
+      // term is not there add the term and weight of 1
+      if ( !weighttable.containsKey(term) ){
+         weighttable.put(term, 1);
+      }
+      // term is there then increase the weight by one
+      else{
+         weighttable.put(term, weighttable.get(term)+1);
+      }
+   }
+
+   public double getDocWeight(){
+      List<String> keys = new ArrayList<String>();
+      keys.addAll(weighttable.keySet());
+      double totalweight = 0;
+      // weight of term in a doc
+      double wdt = 0;
+      for(int j = 0; j < keys.size(); j++){
+         wdt = (1 + Math.log(weighttable.get(keys.get(j))));
+         totalweight = (totalweight + Math.pow(wdt,2));
+      }
+
+      return Math.sqrt(totalweight);
+   }
+   public void cleanWeighttable(){
+      weighttable.clear();
+   }
+
+   public void addWeightToArray(Double weight){
+      weightlist.add(weight);
+   }
+
+   public ArrayList<Double> getWeightArray(){
+      return weightlist;
    }
 }
