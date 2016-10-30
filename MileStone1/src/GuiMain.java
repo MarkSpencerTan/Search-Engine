@@ -162,14 +162,6 @@ public class GuiMain extends Application{
       mainscene = new Scene(mainlayout, 1000,700);
       mainscene.getStylesheets().add("style.css");
 
-      //Index Scene
-      StackPane indexlayout = new StackPane();
-
-      switchmain = new Button("Back to Search");
-      switchmain.setOnAction(e -> window.setScene(mainscene));
-
-      indexlayout.getChildren().addAll(switchmain);
-
       //main
       window.setScene(mainscene);
       window.setResizable(false);
@@ -189,7 +181,7 @@ public class GuiMain extends Application{
       List<ScoredDocument> rankedresults = new ArrayList<>();
 
       // we have exactly 2 words, use biword index
-      if(userinput.split(" ").length == 2 ){
+      if(userinput.split(" ").length == 2 && !isRanked){
          String[] inputsize = userinput.split(" ");
          String SearchBWord = processor.normalizeToken(inputsize[0])+" "+processor.normalizeToken(inputsize[1]);
          outputcontent.append("\nSearching Biword index...\n");

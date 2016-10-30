@@ -211,14 +211,14 @@ public class IndexWriter {
                // now write the term frequency
                byte[] termFreqBytes = ByteBuffer.allocate(4)
                  .putInt(postings.get(i).getListofPos().size()).array();
-                 postingsFile.write(termFreqBytes, 0, docFreqBytes.length);
+               postingsFile.write(termFreqBytes, 0, docFreqBytes.length);
                  
                int lastposId = 0;  
                // use a for loop to write the position size of term frequency
                for (int j = 0; j < postings.get(i).getListofPos().size(); j++) {
                    byte[] posIdBytes = ByteBuffer.allocate(4)
                     .putInt(postings.get(i).getListofPos().get(j) - lastposId).array();
-                   postingsFile.write(posIdBytes, 0, docFreqBytes.length); 
+                   postingsFile.write(posIdBytes, 0, docFreqBytes.length);
                    lastposId = postings.get(i).getListofPos().get(j); 
                }
             }
@@ -429,7 +429,9 @@ public class IndexWriter {
 
             // PROCESS THE COMBINED TERM FIRST FOR BOTH POSITIONAL AND BIWORD
             // add combined term in POSITIONAL INDEX
-            index.addTerm(porter.processToken(fulterm), docID, Position);
+
+            if(fulterm.trim().length()>0)
+               index.addTerm(porter.processToken(fulterm), docID, Position);
 
             // add combined term in BIWORD INDEX
             // execute 1 time only for 1 case that is
@@ -442,7 +444,8 @@ public class IndexWriter {
                // and all other hyphen term
                else{
                   Biterm = porter.processToken(Biterm)+" "+porter.processToken(fulterm);
-                  Bindex.addTerm(Biterm, docID);
+                  if(Biterm.trim().length() > 0) //checks for whitespaces
+                     Bindex.addTerm(Biterm, docID);
                   Biterm = fulterm;
                   counter = 0;
                   check = true;
@@ -450,22 +453,27 @@ public class IndexWriter {
 
             // NOW MOVE ON TO THE SPLITED PORTION
             for(int i = 0; i < listterm.length; i++){
-               // add to POSITIONAL INDEX
-               index.addTerm(porter.processToken(listterm[i]), docID, Position);
-               // APPEND THE 2 WORD WITH SPACE AT THE END
-               Sterm = Sterm+porter.processToken(listterm[i])+" ";
-               Position++;
+               String temp = porter.processToken(listterm[i]);
+                  // add to POSITIONAL INDEX if no whitespaces
+                  if(temp.trim().length()>0)
+                  index.addTerm(temp, docID, Position);
+                  // APPEND THE 2 WORD WITH SPACE AT THE END
+                  Sterm = Sterm + temp + " ";
+                  Position++;
             }
             // NOW TRIM THE TRAILING SPACE
             Sterm = Sterm.trim();
             // ADD TO BIWORD INDEX
-            Bindex.addTerm(Sterm, docID);
+            if(Sterm.trim().length() > 0)
+               Bindex.addTerm(Sterm, docID);
             // reset STERM back to empty string FOR NEXT LOOP AROUND
             Sterm = "";
             // end here loop around at while
             continue;
           }
-          index.addTerm( porter.processToken(term), docID, Position);
+          if(term.trim().length()>0) {
+             index.addTerm( porter.processToken(term), docID, Position);
+          }
           Position++;
 
           // execute at the first read (1st term)
@@ -478,13 +486,15 @@ public class IndexWriter {
           // remaining Biterm
           else if(counter == 0 && check == true){
              Biterm = porter.processToken(Biterm)+" "+porter.processToken(term);
-             Bindex.addTerm(Biterm, docID);
+             if(Biterm.trim().length() > 0)
+                Bindex.addTerm(Biterm, docID);
              Biterm = term;
           }
           // second term also only execute 1 time
           else {
              Biterm = porter.processToken(Biterm)+" "+porter.processToken(term);
-             Bindex.addTerm(Biterm, docID);
+             if(Biterm.trim().length() > 0)
+                Bindex.addTerm(Biterm, docID);
              Biterm = term;
              counter = 0;
              check = true;

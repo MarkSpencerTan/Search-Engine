@@ -1,4 +1,7 @@
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
+import java.util.PriorityQueue;
 
 public class RankedQueryParser extends QueryParser {
    private static DocumentProcessing dp = new DocumentProcessing();
@@ -27,10 +30,17 @@ public class RankedQueryParser extends QueryParser {
          }
       });
 
-      String[] terms = query.split("\\s+"); //split the query into an array
+      //split the query into an array
+      String[] terms = query.split("\\s+");
       //Normalize and Porter Stem each term
       for(int i=0; i<terms.length ; i++){
          terms[i] = dp.normalizeToken(terms[i]);
+      }
+
+      // make a list of postings corresponding to the terms in the query
+      List<List<Posting>> postings = new ArrayList<>();
+      for(String term : terms){
+         postings.add(index.getPostingsNoPosition(term));
       }
 
       // Results is a sublist of the corpus that is a list of documents that contain
@@ -39,7 +49,8 @@ public class RankedQueryParser extends QueryParser {
 
       for(int docId : results){
          //score each document
-         double score = score(docId, terms);
+         double score = score(docId, terms, postings);
+         System.out.println("doc: "+docId + "score: "+score);
          //add Scored Document to the PQ
          if(score > 0) {
             docqueue.add(new ScoredDocument(docId, score));
@@ -48,37 +59,36 @@ public class RankedQueryParser extends QueryParser {
 
       List<ScoredDocument> top10 = new ArrayList<>();
       // remove the top 10 from the priority queue
-      for(int i=0;i<10 && !docqueue.isEmpty(); i++){
+      for(int i=0; i<10 && !docqueue.isEmpty(); i++){
          top10.add(docqueue.poll());
       }
       return top10;
    }
 
    //Scores a document
-   private static double score(int docId, String[] terms){
+   private static double score(int docId, String[] terms, List<List<Posting>> postings){
       double ad=0;  //accumulator
 
-      for(String term : terms){
+      for(int i=0; i<terms.length; i++){
          double Wqt =0;
          double Wdt =0;
-         PostingResult postings = index.getPostings(term);
 
-         if(postings!=null) {
+         if(!postings.isEmpty()) {
             // Wqt = (ln(1 + N/(Amount of Documents the term appeared in))
-            Wqt = Math.log(1 + (size / postings.size()));
+            Wqt = Math.log(1 + (index.getFileNames().size() / postings.get(i).size()));
 
-            int[] pos = postings.getPosition(docId);
-            if(pos!=null){
-               // Tftd = Term frequency in the document
-               double tftd = pos.length;
+            // Tftd = Term frequency in the document
+            double tftd = getPostingTftd(postings.get(i), docId);
+            if(tftd > 0)
                Wdt = 1 + Math.log(tftd);
-            }
          }
          // increment the accumulator value
+         System.out.println(terms[i]+ " Results: "+postings.get(i).size());
+         System.out.println("Wqt: "+Wqt);
          ad += Wqt * Wdt;
       }
       //Ld is the weight of the document
-      double Ld = index.readWeightFromFile(docId);
+      double Ld = index.getWeight(docId);
 
       ad /= Ld;
       return ad;
@@ -86,13 +96,22 @@ public class RankedQueryParser extends QueryParser {
 
    //retrieves a list of documents that have at least 1 of the terms in the query
    private static List<Integer> orQuery(String[] query){
-      List<Integer> postings = new ArrayList<>();     //final merged postings list
+      //final merged postings list
+      List<Integer> postings = new ArrayList<>();
 
       for(String s : query){
          if(index.getPostings(s)!=null)
-            postings = orMerge(postings, index.getPostings(s).getDocs());
+            postings = orMerge(postings, getDocList(index.getPostings(s)));
       }
 
       return postings;
+   }
+
+   private static int getPostingTftd(List<Posting> postings, int id){
+      for(Posting p: postings){
+         if(p.getDocId() == id)
+            return p.getTftd();
+      }
+      return 0;
    }
 }

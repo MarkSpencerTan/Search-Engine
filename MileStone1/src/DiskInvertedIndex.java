@@ -13,7 +13,7 @@ public class DiskInvertedIndex {
 
    private String mPath;
    private List<String> mFileNames;
-   private List<Double> mWeights;
+   private static List<Double> mWeights;
    
    private static RandomAccessFile mWeightlist;
    
@@ -40,14 +40,31 @@ public class DiskInvertedIndex {
          mPostingsbiword = new RandomAccessFile(new File(path, "bpostings.bin"), "r");
          mVocabTablebiword = readVocabTablebiword(path);
 
-         // Fill in weights List
+         // Fill in weights List from the weights bin file
+         mWeights  = new ArrayList<>();
+         byte[] buffer = new byte[8];
 
-
+         for(int i=0; i<mFileNames.size(); i++){
+            try {
+               // read the weight
+               mWeightlist.read(buffer, 0, buffer.length);
+               // use ByteBuffer to convert the 8 bytes into a double.
+               double weight = ByteBuffer.wrap(buffer).getDouble();
+               mWeights.add(weight);
+            }catch(Exception ex){
+               System.out.println(ex);
+            }
+         }
       }
       catch (FileNotFoundException ex) {
          System.out.println(ex.toString());
       }
    }
+
+   public static double getWeight(int docNumber) {
+      return mWeights.get(docNumber);
+   }
+
    // read from weight.bin each doc is 8 byte starting from doc 0 to doc max
    public static double readWeightFromFile(int docNumber) {
 	   double weight = 0;
@@ -68,66 +85,64 @@ public class DiskInvertedIndex {
 	         System.out.println(ex.toString());
 	   }
 
-      System.out.println(docNumber + "weight: "+weight);
       return weight;
    }
-   
-   private static PostingResult readPostingsFromFile(RandomAccessFile postings, 
-    long postingsPosition) {
+
+   //Slow Down Here
+   private static List<Posting> readPostingsFromFile(RandomAccessFile postings,
+                                                      long postingsPosition) {
       try {
-    	   PostingResult result = new PostingResult();
          // seek to the position in the file where the postings start.
          postings.seek(postingsPosition);
-         
+
          // read the 4 bytes for the document frequency
          byte[] buffer = new byte[4];
-         
+
          // read the doc frequency (how many doc contain the term)
          postings.read(buffer, 0, buffer.length);
 
          // use ByteBuffer to convert the 4 bytes into an int.
          int documentFrequency = ByteBuffer.wrap(buffer).getInt();
-         
-         // initialize the array that will hold the postings. 
-         //int[] docIds = new int[documentFrequency];
-         int docIds = 0;
+
+         // initialize the array that will hold the postings.
+         List<Posting> result = new ArrayList<>();
 
          // write the following code:
          // read 4 bytes at a time from the file, until you have read as many
          //    postings as the document frequency promised.
-         //    
+         //
          // after each read, convert the bytes to an int posting. this value
          //    is the GAP since the last posting. decode the document ID from
          //    the gap and put it in the array.
          //
          // repeat until all postings are read.
-         int previousID = 0;
+
+         int currentID = 0;
          int positionSize = 0;
          for(int i = 0; i < documentFrequency; i++){
-        	 // read the first doc id 
-        	 postings.read(buffer, 0, buffer.length);
-        	 docIds = ByteBuffer.wrap(buffer).getInt() + previousID;
-        	 previousID = docIds;
-        	 // now read the TFtd term frequency (# of occurence/positions)
-           	 postings.read(buffer, 0, buffer.length);
-           	 positionSize = ByteBuffer.wrap(buffer).getInt();
-           	 
-           	 // initialize the array that will hold the positions. 
-             int[] posIds = new int[positionSize];
-             int previousPos = 0;
-             
-           	 // now loop and read all of the position              
-           	 for(int j = 0; j < positionSize; j++){
-           		// read the first position
-           		postings.read(buffer, 0, buffer.length);
-           		// put it in an array
-           		posIds[j] = ByteBuffer.wrap(buffer).getInt() + previousPos;
-           		previousPos = posIds[j];
-           	 }
-           	 // now add the docIds into result of type PostingResult
-           	 // as a key and then get that key and add the posIds in as 
-           	 // a value array
-           	 result.addTerm(docIds, posIds);
+            // read the gap
+            postings.read(buffer, 0, buffer.length);
+            int gap = ByteBuffer.wrap(buffer).getInt();
+            currentID += gap;
+
+            // now read the TFtd term frequency (# of occurence/positions)
+            postings.read(buffer, 0, buffer.length);
+            positionSize = ByteBuffer.wrap(buffer).getInt();
+
+            // initialize the array that will hold the positions.
+            List<Integer> positions = new ArrayList<>();
+            int previousPos = 0;
+
+            // now loop and read all of the position gaps
+            for(int j = 0; j < positionSize; j++){
+               // read the first position
+               postings.read(buffer, 0, buffer.length);
+               // put it in the position list
+               int currentpos = ByteBuffer.wrap(buffer).getInt() + previousPos;
+               positions.add(currentpos);
+               previousPos = currentpos;
+            }
+            result.add(new Posting(currentID, positionSize, positions));
          }
          return result;
       }
@@ -137,15 +152,67 @@ public class DiskInvertedIndex {
       return null;
    }
 
-   public PostingResult getPostings(String term) {
+   // Same method as above but without positions for ranked.
+   private static List<Posting> readPostingsNoPosition(RandomAccessFile postings, long postingsPosition) {
+      try {
+         // seek to the position in the file where the postings start.
+         postings.seek(postingsPosition);
+
+         // read the 4 bytes for the document frequency
+         byte[] buffer = new byte[4];
+
+         // read the doc frequency (how many doc contain the term)
+         postings.read(buffer, 0, buffer.length);
+
+         // use ByteBuffer to convert the 4 bytes into an int.
+         int documentFrequency = ByteBuffer.wrap(buffer).getInt();
+
+         // initialize the array that will hold the postings.
+         List<Posting> result = new ArrayList<>();
+
+         int currentID = 0;
+         int positionSize = 0;
+         for(int i = 0; i < documentFrequency; i++){
+            // read the gap
+            postings.read(buffer, 0, buffer.length);
+            int gap = ByteBuffer.wrap(buffer).getInt();
+            currentID += gap;
+
+            // now read the TFtd term frequency (# of occurence/positions)
+            postings.read(buffer, 0, buffer.length);
+            positionSize = ByteBuffer.wrap(buffer).getInt();
+
+            // Skip over the positions
+            postings.skipBytes(buffer.length * positionSize);
+
+            result.add(new Posting(currentID, positionSize));
+         }
+         return result;
+      }
+      catch (IOException ex) {
+         System.out.println(ex.toString());
+      }
+      return null;
+   }
+
+   public List<Posting> getPostings(String term) {
       long postingsPosition = binarySearchVocabulary(term);
       if (postingsPosition >= 0) {
          return readPostingsFromFile(mPostings, postingsPosition);
       }
-      return new PostingResult();
+      return new ArrayList<>();
    }
-   private static List<Integer> readBwordPostingsFromFile(RandomAccessFile postings,
-                                                          long postingsPosition) {
+
+   public List<Posting> getPostingsNoPosition(String term) {
+      long postingsPosition = binarySearchVocabulary(term);
+      if (postingsPosition >= 0) {
+         return readPostingsNoPosition(mPostings, postingsPosition);
+      }
+      return new ArrayList<>();
+   }
+
+
+   private static List<Integer> readBwordPostingsFromFile(RandomAccessFile postings, long postingsPosition) {
       try {
          // seek to the position in the file where the postings start.
          postings.seek(postingsPosition);
@@ -156,7 +223,6 @@ public class DiskInvertedIndex {
 
          // use ByteBuffer to convert the 4 bytes into an int.
          int documentFrequency = ByteBuffer.wrap(buffer).getInt();
-         System.out.println("Doc Freq: " + documentFrequency);
 
          // initialize the array that will hold the postings.
          List<Integer> docIds = new ArrayList<>();
@@ -197,7 +263,6 @@ public class DiskInvertedIndex {
 	      while (i <= j) {
 	         try {
 	            int m = (i + j) / 2;
-               System.out.println(m +" "+ mVocabTablebiword.length);
                long vListPosition = mVocabTablebiword[m * 2];
 	            int termLength;
 	            if (m == mVocabTablebiword.length / 2 - 1){
