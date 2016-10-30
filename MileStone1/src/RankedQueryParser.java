@@ -88,7 +88,7 @@ public class RankedQueryParser extends QueryParser {
          ad += Wqt * Wdt;
       }
       //Ld is the weight of the document
-      double Ld = index.getWeight(docId);
+      double Ld = index.readWeightFromFile(docId);
 
       ad /= Ld;
       return ad;

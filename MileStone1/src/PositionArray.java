@@ -1,5 +1,4 @@
 import java.util.ArrayList;
-import java.util.List;
 
 
 public class PositionArray {
@@ -22,5 +21,4 @@ public class PositionArray {
 	      // set new list of position
 	      listofPos = listofposition;
 	 }
-
 }

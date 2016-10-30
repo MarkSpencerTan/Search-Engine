@@ -13,8 +13,7 @@ public class DiskInvertedIndex {
 
    private String mPath;
    private List<String> mFileNames;
-   private static List<Double> mWeights;
-   
+
    private static RandomAccessFile mWeightlist;
    
    private RandomAccessFile mVocabList;
@@ -39,30 +38,10 @@ public class DiskInvertedIndex {
          mVocabListbiword = new RandomAccessFile(new File(path, "bvocab.bin"), "r");
          mPostingsbiword = new RandomAccessFile(new File(path, "bpostings.bin"), "r");
          mVocabTablebiword = readVocabTablebiword(path);
-
-         // Fill in weights List from the weights bin file
-         mWeights  = new ArrayList<>();
-         byte[] buffer = new byte[8];
-
-         for(int i=0; i<mFileNames.size(); i++){
-            try {
-               // read the weight
-               mWeightlist.read(buffer, 0, buffer.length);
-               // use ByteBuffer to convert the 8 bytes into a double.
-               double weight = ByteBuffer.wrap(buffer).getDouble();
-               mWeights.add(weight);
-            }catch(Exception ex){
-               System.out.println(ex);
-            }
-         }
       }
       catch (FileNotFoundException ex) {
          System.out.println(ex.toString());
       }
-   }
-
-   public static double getWeight(int docNumber) {
-      return mWeights.get(docNumber);
    }
 
    // read from weight.bin each doc is 8 byte starting from doc 0 to doc max
@@ -449,5 +428,4 @@ public class DiskInvertedIndex {
 	      }
 	      return null;
    }
-
 }

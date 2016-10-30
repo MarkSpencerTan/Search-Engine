@@ -4,7 +4,10 @@ import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
-import javafx.scene.layout.*;
+import javafx.scene.layout.BorderPane;
+import javafx.scene.layout.ColumnConstraints;
+import javafx.scene.layout.GridPane;
+import javafx.scene.layout.HBox;
 import javafx.stage.DirectoryChooser;
 import javafx.stage.Stage;
 
@@ -235,140 +238,6 @@ public class GuiMain extends Application{
       launch(args);
    }
 
-
-//   private static void indexFile(File file, DiskInvertedIndex index, int docID, BiwordIndex Bindex) {
-//      // Construct a SimpleTokenStream for the given File.
-//      // Read each token from the stream and add it to the index.
-//      int Position  = 0;
-//      // biword index persistent term
-//      String Biterm = "";
-//      // biword index counter
-//      int counter = 0;
-//      boolean check = false;
-//      // special biterm for hyphen case 2
-//      String Sterm = "";
-//
-//      try {
-//         TokenStream mTStream = new TokenStream() {
-//            @Override
-//            public String nextToken() {
-//               return null;
-//            }
-//
-//            @Override
-//            public boolean hasNextToken() {
-//               return false;
-//            }
-//         };
-//         if(file.toString().endsWith(".txt")){
-//            mTStream = new SimpleTokenStream(file);
-//         }
-//         if(file.toString().endsWith(".json")){
-//            String jsonbody = BodyOutput.getBodyString(file.toString());
-//            mTStream = new SimpleTokenStream(jsonbody);
-//         }
-//         PorterStemmer porter = new PorterStemmer();
-//         DocumentProcessing SimplifyTerm = new DocumentProcessing();
-//         while (mTStream.hasNextToken()){
-//            // take the next token and put it into term variable
-//            String term = mTStream.nextToken();
-//            // this line deal with all aspostrophy and non-alphanumeric
-//            // also guarantee we get lowercase back
-//            term  = SimplifyTerm.normalizeIndexedToken(term);
-//
-//            // remove hyphen
-//            if(term.contains("-")){
-//               // grab the hyphen splited
-//               List<String> splitedTerm = SimplifyTerm.SplitHyphenWord(term);
-//               // pick up the 3rd item which is the combined word
-//               // put it in fulterm
-//               String fulterm = splitedTerm.get(2);
-//
-//               // create an array of string size 2 assign it value
-//               // with the 1st and 2nd word from hyphen split
-//               String[] listterm = new String[2];
-//               listterm[0] = splitedTerm.get(0);
-//               listterm[1] = splitedTerm.get(1);
-//
-//               // PROCESS THE COMBINED TERM FIRST FOR BOTH POSITIONAL AND BIWORD
-//               // add combined term in POSITIONAL INDEX
-//               if(fulterm.trim().length()>0)
-//                  diskindex.addTerm(PorterStemmer.processToken(fulterm), docID, Position);
-//
-//               // add combined term in BIWORD INDEX
-//               // execute 1 time only for 1 case that is
-//               // we have 1st term in file as a hyphen term
-//               if(counter == 0 && !check){
-//                  Biterm = fulterm;
-//                  counter++;
-//               }
-//               // first term in file is not hyphen
-//               // and all other hyphen term
-//               else{
-//                  Biterm = porter.processToken(Biterm)+" "+porter.processToken(fulterm);
-//                  if(Biterm.trim().length() > 0) //checks for whitespaces
-//                     Bindex.addTerm(Biterm, docID);
-//                  Biterm = fulterm;
-//                  counter = 0;
-//                  check = true;
-//               }
-//
-//               // NOW MOVE ON TO THE SPLITTED PORTION
-//               for(int i = 0; i < listterm.length; i++){
-//                  String temp = porter.processToken(listterm[i]);
-//                  // add to POSITIONAL INDEX if no whitespaces
-//                  if(temp.trim().length()>0)
-//                     index.addTerm(temp, docID, Position);
-//                  // APPEND THE 2 WORD WITH SPACE AT THE END
-//                  Sterm = Sterm + temp + " ";
-//                  Position++;
-//               }
-//               // NOW TRIM THE TRAILING SPACE
-//               Sterm = Sterm.trim();
-//               // ADD TO BIWORD INDEX
-//               if(Sterm.trim().length() > 0)
-//                  Bindex.addTerm(Sterm, docID);
-//
-//               // reset STERM back to empty string FOR NEXT LOOP AROUND
-//               Sterm = "";
-//               // end here loop around at while
-//               continue;
-//            }
-//            //checks whether token is just all whitespaces
-//            if(term.trim().length()>0) {
-//               index.addTerm(porter.processToken(term), docID, Position);
-//            }
-//
-//            Position++;
-//            // execute at the first read (1st term)
-//            // only execute 1 time first word
-//            if(counter == 0 && !check){
-//               Biterm = term;
-//               counter++;
-//            }
-//            // this is the condition for the rest of the loop
-//            // remaining Biterm
-//            else if(counter == 0 && check == true){
-//               Biterm = porter.processToken(Biterm)+" "+porter.processToken(term);
-//               if(Biterm.trim().length() > 0)
-//                  Bindex.addTerm(Biterm, docID);
-//               Biterm = term;
-//            }
-//            // second term also only execute 1 time
-//            else {
-//               Biterm = porter.processToken(Biterm)+" "+porter.processToken(term);
-//               if(Biterm.trim().length() > 0)
-//                  Bindex.addTerm(Biterm, docID);
-//               Biterm = term;
-//               counter = 0;
-//               check = true;
-//            }
-//         }
-//      }catch(FileNotFoundException ex){
-//         System.out.println("File Not Found");
-//      }
-//   }
-
    // Methods for UI Buttons and Functionality
 
    // Dialogbox that makes user choose ranked or boolean mode
@@ -410,7 +279,23 @@ public class GuiMain extends Application{
          IndexWriter writer = new IndexWriter(currentWorkingPath.toString());
          writer.buildIndex();
 
+         if(promptToRead()) {
+            diskindex = new DiskInvertedIndex(currentWorkingPath.toString());
+            fileNames = diskindex.getFileNames();
+         }
       }
+   }
+
+   private static boolean promptToRead(){
+      Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
+      String s = "Read into the same directory?";
+      alert.setContentText(s);
+      Optional<ButtonType> result = alert.showAndWait();
+
+      if ((result.isPresent()) && (result.get() == ButtonType.OK)) {
+         return true;
+      }
+      return false;
    }
 
    // Shows up dialog box to choose a file directory

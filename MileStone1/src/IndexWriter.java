@@ -38,7 +38,7 @@ public class IndexWriter {
    vocabTable.bin, containing a table that maps vocab terms to postings locations
    */
    public void buildIndex() {
-	  buildIndexs(mFolderPath);
+	   buildIndexs(mFolderPath);
       buildIndexForDirectory(mFolderPath);
       buildbwordIndexForDirectory(mFolderPath);
    }
@@ -47,12 +47,7 @@ public class IndexWriter {
    Builds the normal PositionalInvertedIndex for the folder.
    */
    private static void buildIndexForDirectory(String folder) {
-      //PositionalInvertedIndex index = new PositionalInvertedIndex();
-
-      // Index the directory using a naive index
-      // indexFiles(folder, index);
-
-			// at this point, "index" contains the in-memory inverted index 
+      // at this point, "index" contains the in-memory inverted index
       // now we save the index to disk, building three files: the postings index,
       // the vocabulary list, and the vocabulary table.
 
