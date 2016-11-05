@@ -21,10 +21,7 @@ import java.util.Optional;
 
 public class GuiMain extends Application{
 
-   private static Button search, porterbutton, switchindex;
-   private static Button vocab, changedir, switchbiword, switchmain, documentbutton;
-   private Stage window;
-   private Scene mainscene;
+
    private static StringBuffer outputcontent = new StringBuffer();
    private static TextField searchbox;
    private static TextArea output;
@@ -33,39 +30,26 @@ public class GuiMain extends Application{
    private static Path currentWorkingPath = Paths.get(System.getProperty("user.dir")).toAbsolutePath();
 
    //list of modes available
-   private final String[] modelist = {"Boolean", "Ranked"};
-   private final String[] menulist = {"Read", "Write"};
-   private final String[] indexmodelist = {"Build a Disk Index", "Load Existing Disk Index"};
    private static boolean isRanked = false;
+   private static String mFormula;
    private static String menuoption = "";
 
    // the inverted index
-   static DiskInvertedIndex diskindex;
+   private static DiskInvertedIndex diskindex;
    // the list of file names that were processed
-   static List<String> fileNames = new ArrayList<String>();
+   private static List<String> fileNames = new ArrayList<String>();
 
    //GUI STARTS HERE
    @Override
    public void start(Stage primaryStage) throws Exception{
+      Button search, porterbutton;
+      Button changedir, documentbutton;
+      Stage window;
+      Scene mainscene;
 
       // Dialog Box to choose Querying mode 1)Boolean Retrieval 2) Ranked retrieval
-      Dialog modes = new ChoiceDialog<>(modelist[0], modelist);
-      modes.setTitle("Vsion Search Mode Selector");
-      modes.setHeaderText(null);
-      modes.setResizable(true);
-      modes.getDialogPane().setPrefSize(350, 120);
-      modes.setContentText("Select a Mode: ");
-
-      // Dialog box to choose indexing mode
-      Dialog menu = new ChoiceDialog<>(menulist[0], menulist);
-      menu.setTitle("Vsion Search Main Menu");
-      menu.setHeaderText(null);
-      menu.setResizable(true);
-      menu.getDialogPane().setPrefSize(350, 120);
-      menu.setContentText("Indexing Mode: ");
-
-      chooseQueryMode(modes);
-      chooseMenuOption(menu);
+      chooseQueryMode();
+      chooseMenuOption();
 
       window = primaryStage;
       window.setTitle("Search Engine - Milestone 1");
@@ -176,7 +160,7 @@ public class GuiMain extends Application{
       String userinput = searchbox.getText();
       outputcontent = new StringBuffer("Query: "+userinput+"\n\n");
       DocumentProcessing processor = new DocumentProcessing();
-      RankedQueryParser rankedparser = new RankedQueryParser(diskindex, fileNames.size());
+      RankedQueryParser rankedparser = new RankedQueryParser(diskindex);
       boolean biwordfail = true; // checks if biword finds the query
 
       List<Integer> results = new ArrayList<>();
@@ -202,7 +186,7 @@ public class GuiMain extends Application{
       if(biwordfail) {
          // choose querying mode accordingly
          if (isRanked){
-            rankedresults = rankedparser.rankDocuments(userinput);
+            rankedresults = rankedparser.rankDocuments(userinput, mFormula);
          }
          //regular boolean query
          else
@@ -241,7 +225,14 @@ public class GuiMain extends Application{
    // Methods for UI Buttons and Functionality
 
    // Dialogbox that makes user choose ranked or boolean mode
-   private static void chooseQueryMode(Dialog modes){
+   private static void chooseQueryMode(){
+      String[] modelist = {"Boolean", "Ranked"};
+
+      Dialog modes = new ChoiceDialog<>(modelist[0], modelist);
+      modes.setTitle("Vsion Search");
+      modes.setHeaderText("Select a Mode: ");
+      modes.setResizable(true);
+      modes.getDialogPane().setPrefSize(350, 120);
       Optional<String> result = modes.showAndWait();
       String selected = "cancelled";
 
@@ -252,6 +243,7 @@ public class GuiMain extends Application{
       if(selected.equals("Ranked")){
          System.out.println("You Selected Ranked Retrieval...");
          isRanked = true;
+         chooseFormula();
       }
       else if(selected.equals("Boolean")){
          System.out.println("You Selected Boolean Retrieval...");
@@ -259,22 +251,60 @@ public class GuiMain extends Application{
       }
    }
 
-   // Dialogbox that chooses whether to read or write an index
-   private static void chooseMenuOption(Dialog modes) throws Exception{
+   // Choose a formula for ranked
+   private static void chooseFormula(){
+      String[] formulas = {"Default", "tf-idf", "Okapi BM25", "Wacky"};
+
+      Dialog modes = new ChoiceDialog<>(formulas[0], formulas);
+      modes.setHeaderText(null);
+      modes.setResizable(true);
+      modes.getDialogPane().setPrefSize(350, 120);
+      modes.setHeaderText("Select A Ranking Formula:");
+      String selected = "Default";
+
       Optional<String> result = modes.showAndWait();
+      if(result.isPresent()){
+         selected = result.get();   // retrieves user selection from dialog
+      }
+
+      if(selected.equals("Default")){
+         mFormula = "Default";
+      }
+      else if(selected.equals("tf-idf")){
+         mFormula = "tf-idf";
+      }
+      else if(selected.equals("Okapi BM25")){
+         mFormula = "Okapi BM25";
+      }
+      else if(selected.equals("Wacky")){
+         mFormula = "Wacky";
+      }
+   }
+
+   // Dialogbox that chooses whether to read or write an index
+   private static void chooseMenuOption() throws Exception{
+      String[] indexmodelist = {"Build", "Query"};
+
+      Dialog menu = new ChoiceDialog<>(indexmodelist[0], indexmodelist);
+      menu.setTitle("Vsion Search");
+      menu.setHeaderText("Indexing Mode: ");
+      menu.setResizable(true);
+      menu.getDialogPane().setPrefSize(250, 120);
       String selected = "cancelled";
+
+      Optional<String> result = menu.showAndWait();// Dialog box to choose indexing mode
 
       if(result.isPresent()){
          selected = result.get();   // retrieves user selection from dialog
       }
 
       menuoption = selected;
-      if(menuoption.equals("Read")){
+      if(menuoption.equals("Query")){
          currentWorkingPath = chooseFolder(currentWorkingPath.toFile());
          diskindex = new DiskInvertedIndex(currentWorkingPath.toString());
          fileNames = diskindex.getFileNames();
       }
-      else if(menuoption.equals("Write")){
+      else if(menuoption.equals("Build")){
          currentWorkingPath = chooseFolder(currentWorkingPath.toFile());
          IndexWriter writer = new IndexWriter(currentWorkingPath.toString());
          writer.buildIndex();
@@ -286,6 +316,7 @@ public class GuiMain extends Application{
       }
    }
 
+   // prompts if user wants to read on the same directory after writing index
    private static boolean promptToRead(){
       Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
       String s = "Read into the same directory?";

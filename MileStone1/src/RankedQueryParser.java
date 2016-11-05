@@ -1,20 +1,15 @@
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
-import java.util.PriorityQueue;
+import java.util.*;
 
 public class RankedQueryParser extends QueryParser {
    private static DocumentProcessing dp = new DocumentProcessing();
-   private static double size;
    private static DiskInvertedIndex index;
 
-   public RankedQueryParser(DiskInvertedIndex i, double corpus_size){
+   public RankedQueryParser(DiskInvertedIndex i){
       index = i;
-      size = corpus_size;
    }
 
    // Rank the documents returned from a boolean query by score
-   public static List<ScoredDocument> rankDocuments(String query){
+   public static List<ScoredDocument> rankDocuments(String query, String formula){
       //Create a Priority Queue to sort ranked documents
       PriorityQueue<ScoredDocument> docqueue = new PriorityQueue<ScoredDocument>(1, new Comparator<ScoredDocument>() {
          public int compare(ScoredDocument doc1, ScoredDocument doc2) {
@@ -37,24 +32,47 @@ public class RankedQueryParser extends QueryParser {
          terms[i] = dp.normalizeToken(terms[i]);
       }
 
-      // make a list of postings corresponding to the terms in the query
-      List<List<Posting>> postings = new ArrayList<>();
-      for(String term : terms){
-         postings.add(index.getPostingsNoPosition(term));
+      // Hashmap to keep the saved document scores
+      HashMap<Integer, ScoredDocument> accumulatorMap = new HashMap<>();
+
+      // Go Through each term in the query
+      for (String term : terms){
+         List<Posting> postings = index.getPostings(term);
+         List<Integer> postingDocIds = getDocList(postings);
+
+         // Wqt = (ln(1 + N/(Amount of Documents the term appeared in))
+         Double Wqt = calcWqt(postings, formula);
+
+         // For each document in posting list
+         for(int doc : postingDocIds){
+            //Initialize the accumulator value
+            double score = 0;
+
+            // Tftd = Term frequency in the document
+            int tftd = getPostingTftd(postings, doc);
+            double Wdt = calcWdt(tftd, formula);
+
+            score += (Wdt * Wqt);
+
+            if(accumulatorMap.containsKey(doc)){
+               score += accumulatorMap.get(doc).getScore();
+               // update the score of the doc in the hashmap
+               accumulatorMap.get(doc).setScore(score);
+            }
+            else  //add the new doc to the hashmap
+               accumulatorMap.put(doc, new ScoredDocument(doc,score));
+         }
       }
 
-      // Results is a sublist of the corpus that is a list of documents that contain
-      // at least one of the terms in the query.
-      List<Integer> results = orQuery(terms);
+      // Divide scores by docWeights and then add to Priority Queue
+      for(Integer docId : accumulatorMap.keySet()){
+         ScoredDocument doc = accumulatorMap.get(docId);
 
-      for(int docId : results){
-         //score each document
-         double score = score(docId, terms, postings);
-         System.out.println("doc: "+docId + "score: "+score);
-         //add Scored Document to the PQ
-         if(score > 0) {
-            docqueue.add(new ScoredDocument(docId, score));
-         }
+         //Ld is the weight of the document
+         double Ld = index.readWeightFromFile(docId);
+         // divide the doc's score by the doc weight
+         doc.setScore(doc.getScore()/Ld);
+         docqueue.add(doc);
       }
 
       List<ScoredDocument> top10 = new ArrayList<>();
@@ -65,48 +83,64 @@ public class RankedQueryParser extends QueryParser {
       return top10;
    }
 
-   //Scores a document
-   private static double score(int docId, String[] terms, List<List<Posting>> postings){
-      double ad=0;  //accumulator
+   private static double calcWqt(List<Posting> postings, String formula){
+      int N = index.getFileNames().size();
+      int dft = postings.size();
 
-      for(int i=0; i<terms.length; i++){
-         double Wqt =0;
-         double Wdt =0;
-
-         if(!postings.isEmpty()) {
-            // Wqt = (ln(1 + N/(Amount of Documents the term appeared in))
-            Wqt = Math.log(1 + (index.getFileNames().size() / postings.get(i).size()));
-
-            // Tftd = Term frequency in the document
-            double tftd = getPostingTftd(postings.get(i), docId);
-            if(tftd > 0)
-               Wdt = 1 + Math.log(tftd);
-         }
-         // increment the accumulator value
-         System.out.println(terms[i]+ " Results: "+postings.get(i).size());
-         System.out.println("Wqt: "+Wqt);
-         ad += Wqt * Wdt;
+      if(formula.equals("Default")){
+         return Math.log(1 + (N / dft));
       }
-      //Ld is the weight of the document
-      double Ld = index.readWeightFromFile(docId);
-
-      ad /= Ld;
-      return ad;
+      else if(formula.equals("tf-idf")){
+         return Math.log(N / dft);
+      }
+      else if(formula.equals("Okapi BM25")){
+         return Math.max(0.1, Math.log( (N-dft+.5) / (dft+.5) ));
+      }
+      else if(formula.equals("Wacky")){
+         return Math.max(0, Math.log((N-dft)/dft));
+      }
+      return 0;
    }
 
-   //retrieves a list of documents that have at least 1 of the terms in the query
-   private static List<Integer> orQuery(String[] query){
-      //final merged postings list
-      List<Integer> postings = new ArrayList<>();
-
-      for(String s : query){
-         if(index.getPostings(s)!=null)
-            postings = orMerge(postings, getDocList(index.getPostings(s)));
+   private static double calcWdt(int tftd, String formula){
+      if(formula.equals("Default")){
+         return 1.0 + Math.log(tftd);
       }
-
-      return postings;
+      else if(formula.equals("tf-idf")){
+         return tftd;
+      }
+      else if(formula.equals("Okapi BM25")){
+         return Math.max(0.1, Math.log( (N-dft+.5) / (dft+.5) ));
+      }
+      else if(formula.equals("Wacky")){
+         return Math.max(0, Math.log((N-dft)/dft));
+      }
+      return 0;
    }
 
+      // Divide scores by docWeights and then add to Priority Queue
+      for(Integer docId : accumulatorMap.keySet()){
+         ScoredDocument doc = accumulatorMap.get(docId);
+
+         //Ld is the weight of the document
+         double Ld = index.readWeightFromFile(docId);
+         // divide the doc's score by the doc weight
+         doc.setScore(doc.getScore()/Ld);
+         docqueue.add(doc);
+      }
+   }
+
+   private static void okapiCalc(String[] terms, HashMap<Integer, ScoredDocument> accumulatorMap, PriorityQueue docqueue){
+
+   }
+
+   private static void wackyCalc(String[] terms, HashMap<Integer, ScoredDocument> accumulatorMap, PriorityQueue docqueue){
+
+   }
+
+
+   // Given a list of postings and a docid,
+   // finds the tftd of the docId in the postings of that document.
    private static int getPostingTftd(List<Posting> postings, int id){
       for(Posting p: postings){
          if(p.getDocId() == id)
@@ -115,3 +149,7 @@ public class RankedQueryParser extends QueryParser {
       return 0;
    }
 }
+
+
+
+

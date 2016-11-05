@@ -16,4 +16,8 @@ public class ScoredDocument {
    public double getScore(){
       return score;
    }
+
+   public void setScore(double newScore){
+      score = newScore;
+   }
 }
