@@ -43,13 +43,13 @@ public class GuiMain extends Application{
    @Override
    public void start(Stage primaryStage) throws Exception{
       Button search, porterbutton;
-      Button changedir, documentbutton;
+      Button options, documentbutton;
       Stage window;
       Scene mainscene;
 
-      // Dialog Box to choose Querying mode 1)Boolean Retrieval 2) Ranked retrieval
-      chooseQueryMode();
+      // Dialog Box to choose whether to read or write
       chooseMenuOption();
+
 
       window = primaryStage;
       window.setTitle("Search Engine - Milestone 1");
@@ -131,16 +131,27 @@ public class GuiMain extends Application{
          System.out.println(filepath);
          preview.setText(BodyOutput.getBodyString(filepath));
       });
+      //Button to select a new Menu Option
+      options = new Button("Menu Option");
+      options.getStyleClass().add("buttons");
+      options.setOnAction(e -> {
+         try {
+            chooseMenuOption();
+         }catch(Exception ex){
+            System.out.println(ex);
+         }
+      });
+
       //Button to select a new corpus directory
-      changedir = new Button("Change Corpus");
-      changedir.getStyleClass().add("buttons");
-      changedir.setOnAction(e -> {
-         currentWorkingPath = chooseFolder(currentWorkingPath.toFile());
+      Button changeformula = new Button("Change Corpus");
+      changeformula.getStyleClass().add("buttons");
+      changeformula.setOnAction(e -> {
+         chooseFormula();
       });
 
 
 
-      searchbar.getChildren().addAll(searchbox, search, porterbutton, documentbutton, changedir);
+      searchbar.getChildren().addAll(searchbox, search, porterbutton, documentbutton, options, changeformula);
       searchbar.setId("bottombar");
       searchbar.setMinHeight(50);
       mainlayout.setBottom(searchbar);
@@ -303,6 +314,9 @@ public class GuiMain extends Application{
          currentWorkingPath = chooseFolder(currentWorkingPath.toFile());
          diskindex = new DiskInvertedIndex(currentWorkingPath.toString());
          fileNames = diskindex.getFileNames();
+
+         // Dialog Box to choose Querying mode 1)Boolean Retrieval 2) Ranked retrieval
+         chooseQueryMode();
       }
       else if(menuoption.equals("Build")){
          currentWorkingPath = chooseFolder(currentWorkingPath.toFile());

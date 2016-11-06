@@ -43,24 +43,31 @@ public class RankedQueryParser extends QueryParser {
          // Wqt = (ln(1 + N/(Amount of Documents the term appeared in))
          Double Wqt = calcWqt(postings, formula);
 
+         // Calculate DocLengthA = Average Document Length for the whole corpus
+         Double docLengthA = index.readDocLengthA();
+
          // For each document in posting list
-         for(int doc : postingDocIds){
+         for(int docId : postingDocIds){
+            // A list that contains: docWeightD, docLengthD, ByteSizeD, ave(tftd)
+            // values in that order.
+            List<Double> weights = index.readWeightFromFile(docId);
+
             //Initialize the accumulator value
             double score = 0;
 
             // Tftd = Term frequency in the document
-            int tftd = getPostingTftd(postings, doc);
-            double Wdt = calcWdt(tftd, formula);
+            int tftd = getPostingTftd(postings, docId);
+            double Wdt = calcWdt(tftd, docId, docLengthA, formula);
 
             score += (Wdt * Wqt);
 
-            if(accumulatorMap.containsKey(doc)){
-               score += accumulatorMap.get(doc).getScore();
+            if(accumulatorMap.containsKey(docId)){
+               score += accumulatorMap.get(docId).getScore();
                // update the score of the doc in the hashmap
-               accumulatorMap.get(doc).setScore(score);
+               accumulatorMap.get(docId).setScore(score);
             }
             else  //add the new doc to the hashmap
-               accumulatorMap.put(doc, new ScoredDocument(doc,score));
+               accumulatorMap.put(docId, new ScoredDocument(docId,score));
          }
       }
 
@@ -69,7 +76,7 @@ public class RankedQueryParser extends QueryParser {
          ScoredDocument doc = accumulatorMap.get(docId);
 
          //Ld is the weight of the document
-         double Ld = index.readWeightFromFile(docId);
+         double Ld = calcLd(docId, formula);
          // divide the doc's score by the doc weight
          doc.setScore(doc.getScore()/Ld);
          docqueue.add(doc);
@@ -102,7 +109,11 @@ public class RankedQueryParser extends QueryParser {
       return 0;
    }
 
-   private static double calcWdt(int tftd, String formula){
+   private static double calcWdt(int tftd, int docId, double docLengthA, String formula){
+      // A list that contains: docWeightD, docLengthD, ByteSizeD, ave(tftd)
+      // values in that order.
+      List<Double> weights = index.readWeightFromFile(docId);
+
       if(formula.equals("Default")){
          return 1.0 + Math.log(tftd);
       }
@@ -110,33 +121,32 @@ public class RankedQueryParser extends QueryParser {
          return tftd;
       }
       else if(formula.equals("Okapi BM25")){
-         return Math.max(0.1, Math.log( (N-dft+.5) / (dft+.5) ));
+         double kd = 1.2 * (.25 + (.75*(weights.get(1)/docLengthA)) );
+         return (2.2 * tftd ) / (kd + tftd);
       }
       else if(formula.equals("Wacky")){
-         return Math.max(0, Math.log((N-dft)/dft));
+         return (1 + Math.log(tftd)) /(1+Math.log(weights.get(3)));
       }
       return 0;
    }
 
-      // Divide scores by docWeights and then add to Priority Queue
-      for(Integer docId : accumulatorMap.keySet()){
-         ScoredDocument doc = accumulatorMap.get(docId);
+   private static double calcLd(int docId, String formula){
+      // A size 4 list that contains: docWeightD, docLengthD, ByteSizeD, ave(tftd)
+      // values in that order.
+      List<Double> weights = index.readWeightFromFile(docId);
 
-         //Ld is the weight of the document
-         double Ld = index.readWeightFromFile(docId);
-         // divide the doc's score by the doc weight
-         doc.setScore(doc.getScore()/Ld);
-         docqueue.add(doc);
+      if(formula.equals("Default") || formula.equals("tf-idf")){
+         return weights.get(0);
       }
+      else if(formula.equals("Okapi BM25")){
+         return 1;
+      }
+      else if(formula.equals("Wacky")){
+         return Math.sqrt(weights.get(2));
+      }
+      return 0;
    }
 
-   private static void okapiCalc(String[] terms, HashMap<Integer, ScoredDocument> accumulatorMap, PriorityQueue docqueue){
-
-   }
-
-   private static void wackyCalc(String[] terms, HashMap<Integer, ScoredDocument> accumulatorMap, PriorityQueue docqueue){
-
-   }
 
 
    // Given a list of postings and a docid,

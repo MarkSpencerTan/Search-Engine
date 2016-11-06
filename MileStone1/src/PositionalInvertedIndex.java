@@ -91,6 +91,31 @@ public class PositionalInvertedIndex {
 
       return Math.sqrt(totalweight);
    }
+
+   public double getaveTftd(){
+      List<String> keys = new ArrayList<String>();
+      keys.addAll(weighttable.keySet());
+      int avetftd = 0;
+
+      for(int j = 0; j < keys.size(); j++){
+         avetftd = avetftd + weighttable.get(keys.get(j));
+      }
+
+      return avetftd/weighttable.size();
+   }
+
+   public double getDoclengthD(){
+      List<String> keys = new ArrayList<String>();
+      keys.addAll(weighttable.keySet());
+      int DocLength = 0;
+
+      for(int j = 0; j < keys.size(); j++){
+         DocLength = DocLength + weighttable.get(keys.get(j));
+      }
+
+      return DocLength;
+   }
+
    public void cleanWeighttable(){
       weighttable.clear();
    }
