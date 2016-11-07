@@ -7,7 +7,6 @@ import java.nio.ByteBuffer;
 import java.nio.file.*;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 
 public class DiskInvertedIndex {
@@ -103,37 +102,7 @@ public class DiskInvertedIndex {
       }
       return docInfo;
    }
-   // Reads the weights.bin file after the DocLengthAverage and
-   // creates a hashmap containing the weights of each document.
-   public HashMap<Integer, List<Double>> readWeights() {
-      HashMap<Integer, List<Double>> weights = new HashMap<>();
-
-      try{
-         // skip past the DocLengthA value
-         mWeightlist.seek(8);
-         byte[] buffer = new byte[8];
-
-         // go through the documents
-         for( int i = 0; i<mFileNames.size(); i++){
-            // an arraylist of size 4 will be populated with the weight values of the doc
-            ArrayList<Double> docInfo = new ArrayList<>();
-            for( int j = 0; j < 4; j++){
-               mWeightlist.read(buffer, 0, buffer.length);
-               docInfo.add(ByteBuffer.wrap(buffer).getDouble());
-            }
-
-            // add the doc weight to the hashmap
-            weights.put(i, docInfo);
-         }
-
-      }catch(Exception e){
-         System.out.println(e);
-      }
-      return weights;
-   }
-
-
-
+   
    private static List<Posting> readPostingsFromFile(RandomAccessFile postings,
                                                      long postingsPosition) {
       try {

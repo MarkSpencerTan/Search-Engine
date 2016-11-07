@@ -16,7 +16,6 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Optional;
 
@@ -39,8 +38,6 @@ public class GuiMain extends Application{
    private static DiskInvertedIndex diskindex;
    // the list of file names that were processed
    private static List<String> fileNames = new ArrayList<>();
-   // the hashmap containing weights of each documents.
-   private static HashMap<Integer, List<Double>> weightsmap;
 
    //GUI STARTS HERE
    @Override
@@ -174,7 +171,7 @@ public class GuiMain extends Application{
       String userinput = searchbox.getText();
       outputcontent = new StringBuffer("Query: "+userinput+"\n\n");
       DocumentProcessing processor = new DocumentProcessing();
-      RankedQueryParser rankedparser = new RankedQueryParser(diskindex, weightsmap);
+      RankedQueryParser rankedparser = new RankedQueryParser(diskindex);
       boolean biwordfail = true; // checks if biword finds the query
 
       List<Integer> results = new ArrayList<>();
@@ -316,7 +313,6 @@ public class GuiMain extends Application{
       if(menuoption.equals("Query")){
          currentWorkingPath = chooseFolder(currentWorkingPath.toFile());
          diskindex = new DiskInvertedIndex(currentWorkingPath.toString());
-         weightsmap = diskindex.readWeights();
          fileNames = diskindex.getFileNames();
 
          // Dialog Box to choose Querying mode 1)Boolean Retrieval 2) Ranked retrieval
@@ -329,7 +325,6 @@ public class GuiMain extends Application{
 
          if(promptToRead()) {
             diskindex = new DiskInvertedIndex(currentWorkingPath.toString());
-            weightsmap = diskindex.readWeights();
             fileNames = diskindex.getFileNames();
          }
       }

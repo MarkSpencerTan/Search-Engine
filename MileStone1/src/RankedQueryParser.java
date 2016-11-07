@@ -3,11 +3,9 @@ import java.util.*;
 public class RankedQueryParser extends QueryParser {
    private static DocumentProcessing dp = new DocumentProcessing();
    private static DiskInvertedIndex index;
-   private static HashMap<Integer, List<Double>> weightsmap;
 
-   public RankedQueryParser(DiskInvertedIndex i, HashMap<Integer, List<Double>> wmap){
+   public RankedQueryParser(DiskInvertedIndex i){
       index = i;
-      weightsmap = wmap;
    }
 
    // Rank the documents returned from a boolean query by score
@@ -114,7 +112,7 @@ public class RankedQueryParser extends QueryParser {
    private static double calcWdt(double tftd, int docId, double docLengthA, String formula){
       // A list that contains: docWeightD, docLengthD, ByteSizeD, ave(tftd)
       // values in that order.
-      List<Double> weights = weightsmap.get(docId);
+      List<Double> weights = index.readWeightFromFile(docId);
 
       if(formula.equals("Default")){
          return 1.0 + Math.log(tftd);
@@ -135,7 +133,7 @@ public class RankedQueryParser extends QueryParser {
    private static double calcLd(int docId, String formula){
       // A size 4 list that contains: docWeightD, docLengthD, ByteSizeD, ave(tftd)
       // values in that order.
-      List<Double> weights = weightsmap.get(docId);
+      List<Double> weights = index.readWeightFromFile(docId);
 
       if(formula.equals("Default") || formula.equals("tf-idf")){
          return weights.get(0);
