@@ -1,4 +1,3 @@
-
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -58,51 +57,30 @@ public class DiskInvertedIndex {
       return ByteBuffer.wrap(buffer).getDouble();
    }
 
-   // read from weight.bin each doc is 8 byte starting from doc 0 to doc max
+   // create a weight arraylist by reading the docweight, doclength,
+   // bytesize, and aveTftd from the weight.bin file
    public static ArrayList<Double> readWeightFromFile(int docNumber) {
-      double LD = 0;
-      double doclengthd = 0;
-      double byteSize = 0;
-      double aveTftd = 0;
-      ArrayList<Double> docInfo = new ArrayList<Double>();
-      // doc number start at 0 so first doc will have doc number = 0
-      // second document will have doc number = 1
+      ArrayList<Double> docInfo = new ArrayList<>();
+
       try {
          // offsets the pointer to the document location
+         // +8bytes is to skip the DocLengthA value.
          mWeightlist.seek((docNumber*32) + 8);
          // read the 8 bytes for the weight
          byte[] buffer = new byte[8];
 
-         // read the weight
-         mWeightlist.read(buffer, 0, buffer.length);
-         // use ByteBuffer to convert the 8 bytes into a double.
-         LD = ByteBuffer.wrap(buffer).getDouble();
-         docInfo.add(LD);
-
-         // read the doclengthd
-         mWeightlist.read(buffer, 0, buffer.length);
-         // use ByteBuffer to convert the 8 bytes into a double.
-         doclengthd = ByteBuffer.wrap(buffer).getDouble();
-         docInfo.add(doclengthd);
-
-         // read the byteSize
-         mWeightlist.read(buffer, 0, buffer.length);
-         // use ByteBuffer to convert the 8 bytes into a double.
-         byteSize = ByteBuffer.wrap(buffer).getDouble();
-         docInfo.add(byteSize);
-
-         // read the aveTdtf
-         mWeightlist.read(buffer, 0, buffer.length);
-         // use ByteBuffer to convert the 8 bytes into a double.
-         aveTftd = ByteBuffer.wrap(buffer).getDouble();
-         docInfo.add(aveTftd);
+         // read the docweight, doclength, bytesize, and aveTftd of the document
+         for(int i=0; i<4; i++){
+            mWeightlist.read(buffer, 0, buffer.length);
+            docInfo.add(ByteBuffer.wrap(buffer).getDouble());
+         }
       }
       catch (IOException ex) {
          System.out.println(ex.toString());
       }
       return docInfo;
    }
-   
+
    private static List<Posting> readPostingsFromFile(RandomAccessFile postings,
                                                      long postingsPosition) {
       try {
@@ -121,7 +99,6 @@ public class DiskInvertedIndex {
          // initialize the array that will hold the postings.
          List<Posting> result = new ArrayList<>();
 
-         // write the following code:
          // read 4 bytes at a time from the file, until you have read as many
          //    postings as the document frequency promised.
          //
@@ -166,7 +143,7 @@ public class DiskInvertedIndex {
       return null;
    }
 
-   // Same method as above but without positions for ranked.
+   // Same method as above but without positions for ranked queries.
    private static List<Posting> readPostingsNoPosition(RandomAccessFile postings, long postingsPosition) {
       try {
          // seek to the position in the file where the postings start.

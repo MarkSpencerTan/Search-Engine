@@ -13,7 +13,7 @@ public class PositionalInvertedIndex {
 
    public void addTerm(String term, int documentID, int termPosition) {
       boolean found = false;
-      // TO-DO: add the term to the index hashtable. If the table does not have
+      // add the term to the index hashtable. If the table does not have
       // an entry for the term, initialize a new ArrayList<Integer>, add the
       // docID to the list, and put it into the map. Otherwise add the docID
       // to the list that already exists in the map, but ONLY IF the list does
@@ -60,7 +60,7 @@ public class PositionalInvertedIndex {
    }
 
    public String[] getDictionary() {
-      // TO-DO: fill an array of Strings with all the keys from the hashtable.
+      // fill an array of Strings with all the keys from the hashtable.
       // Sort the array and return it.
       String[] mDictionary = mIndex.keySet().toArray(new String[getTermCount()]);
       Arrays.sort(mDictionary);
