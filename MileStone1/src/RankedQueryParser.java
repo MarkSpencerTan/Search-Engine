@@ -9,7 +9,7 @@ public class RankedQueryParser extends QueryParser {
    }
 
    // Rank the documents returned from a boolean query by score
-   public static List<ScoredDocument> rankDocuments(String query, String formula){
+   public static PriorityQueue<ScoredDocument> rankDocuments(String query, String formula){
       //Create a Priority Queue to sort ranked documents
       PriorityQueue<ScoredDocument> docqueue = new PriorityQueue<ScoredDocument>(1, new Comparator<ScoredDocument>() {
          public int compare(ScoredDocument doc1, ScoredDocument doc2) {
@@ -42,6 +42,7 @@ public class RankedQueryParser extends QueryParser {
 
          // Wqt = (ln(1 + N/(Amount of Documents the term appeared in))
          Double Wqt = calcWqt(postings, formula);
+         System.out.println("term: "+term + " Wqt: "+Wqt);
 
          // Calculate DocLengthA = Average Document Length for the whole corpus
          Double docLengthA = index.readDocLengthA();
@@ -82,12 +83,7 @@ public class RankedQueryParser extends QueryParser {
          docqueue.add(doc);
       }
 
-      List<ScoredDocument> top10 = new ArrayList<>();
-      // remove the top 10 from the priority queue
-      for(int i=0; i<10 && !docqueue.isEmpty(); i++){
-         top10.add(docqueue.poll());
-      }
-      return top10;
+      return docqueue;
    }
 
    private static double calcWqt(List<Posting> postings, String formula){

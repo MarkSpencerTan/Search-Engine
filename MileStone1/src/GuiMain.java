@@ -18,6 +18,7 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.PriorityQueue;
 
 public class GuiMain extends Application{
 
@@ -197,7 +198,15 @@ public class GuiMain extends Application{
       if(biwordfail) {
          // choose querying mode accordingly
          if (isRanked){
-            rankedresults = rankedparser.rankDocuments(userinput, mFormula);
+            PriorityQueue<ScoredDocument> docqueue = rankedparser.rankDocuments(userinput, mFormula);
+            outputcontent.append("\nTotal Documents Returned: "+docqueue.size());
+
+            List<ScoredDocument> top10 = new ArrayList<>();
+            // remove the top 10 from the priority queue
+            for(int i=0; i<10 && !docqueue.isEmpty(); i++){
+               top10.add(docqueue.poll());
+            }
+            rankedresults = top10;
          }
          //regular boolean query
          else
@@ -219,7 +228,7 @@ public class GuiMain extends Application{
       if(isRanked)
          outputcontent.append("\nResults Returned: "+ rankedresults.size());
       else
-         outputcontent.append("\nResults Returned: "+ results.size());
+         outputcontent.append("\nTop "+ results.size()+" Results Returned");
 
       //if no results are found
       if(results == null || (results.isEmpty()&& rankedresults.isEmpty()))
