@@ -3,9 +3,11 @@ import java.util.*;
 public class RankedQueryParser extends QueryParser {
    private static DocumentProcessing dp = new DocumentProcessing();
    private static DiskInvertedIndex index;
+   private static HashMap<Integer, List<Double>> weightsmap;
 
-   public RankedQueryParser(DiskInvertedIndex i){
+   public RankedQueryParser(DiskInvertedIndex i, HashMap<Integer, List<Double>> wmap){
       index = i;
+      weightsmap = wmap;
    }
 
    // Rank the documents returned from a boolean query by score
@@ -37,7 +39,7 @@ public class RankedQueryParser extends QueryParser {
 
       // Go Through each term in the query
       for (String term : terms){
-         List<Posting> postings = index.getPostings(term);
+         List<Posting> postings = index.getPostingsNoPosition(term);
          List<Integer> postingDocIds = getDocList(postings);
 
          // Wqt = (ln(1 + N/(Amount of Documents the term appeared in))
@@ -46,17 +48,16 @@ public class RankedQueryParser extends QueryParser {
          // Calculate DocLengthA = Average Document Length for the whole corpus
          Double docLengthA = index.readDocLengthA();
 
+         // Create a hashmap to store tftds of each posting
+         HashMap<Integer, Integer> tftdmap = getTftdMap(postings);
+
          // For each document in posting list
          for(int docId : postingDocIds){
-            // A list that contains: docWeightD, docLengthD, ByteSizeD, ave(tftd)
-            // values in that order.
-            List<Double> weights = index.readWeightFromFile(docId);
-
             //Initialize the accumulator value
             double score = 0;
 
             // Tftd = Term frequency in the document
-            int tftd = getPostingTftd(postings, docId);
+            double tftd = tftdmap.get(docId);
             double Wdt = calcWdt(tftd, docId, docLengthA, formula);
 
             score += (Wdt * Wqt);
@@ -74,11 +75,12 @@ public class RankedQueryParser extends QueryParser {
       // Divide scores by docWeights and then add to Priority Queue
       for(Integer docId : accumulatorMap.keySet()){
          ScoredDocument doc = accumulatorMap.get(docId);
-
-         //Ld is the weight of the document
-         double Ld = calcLd(docId, formula);
-         // divide the doc's score by the doc weight
-         doc.setScore(doc.getScore()/Ld);
+         if(doc.getScore() > 0){
+            //Ld is the weight of the document
+            double Ld = calcLd(docId, formula);
+            // divide the doc's score by the doc weight
+            doc.setScore(doc.getScore()/Ld);
+         }
          docqueue.add(doc);
       }
 
@@ -91,8 +93,8 @@ public class RankedQueryParser extends QueryParser {
    }
 
    private static double calcWqt(List<Posting> postings, String formula){
-      int N = index.getFileNames().size();
-      int dft = postings.size();
+      double N = index.getFileNames().size();
+      double dft = postings.size();
 
       if(formula.equals("Default")){
          return Math.log(1 + (N / dft));
@@ -109,10 +111,10 @@ public class RankedQueryParser extends QueryParser {
       return 0;
    }
 
-   private static double calcWdt(int tftd, int docId, double docLengthA, String formula){
+   private static double calcWdt(double tftd, int docId, double docLengthA, String formula){
       // A list that contains: docWeightD, docLengthD, ByteSizeD, ave(tftd)
       // values in that order.
-      List<Double> weights = index.readWeightFromFile(docId);
+      List<Double> weights = weightsmap.get(docId);
 
       if(formula.equals("Default")){
          return 1.0 + Math.log(tftd);
@@ -121,7 +123,7 @@ public class RankedQueryParser extends QueryParser {
          return tftd;
       }
       else if(formula.equals("Okapi BM25")){
-         double kd = 1.2 * (.25 + (.75*(weights.get(1)/docLengthA)) );
+         double kd = 1.2 * (.25 + (.75 * (weights.get(1)/docLengthA)) );
          return (2.2 * tftd ) / (kd + tftd);
       }
       else if(formula.equals("Wacky")){
@@ -133,13 +135,13 @@ public class RankedQueryParser extends QueryParser {
    private static double calcLd(int docId, String formula){
       // A size 4 list that contains: docWeightD, docLengthD, ByteSizeD, ave(tftd)
       // values in that order.
-      List<Double> weights = index.readWeightFromFile(docId);
+      List<Double> weights = weightsmap.get(docId);
 
       if(formula.equals("Default") || formula.equals("tf-idf")){
          return weights.get(0);
       }
       else if(formula.equals("Okapi BM25")){
-         return 1;
+         return 1.0;
       }
       else if(formula.equals("Wacky")){
          return Math.sqrt(weights.get(2));
@@ -147,16 +149,14 @@ public class RankedQueryParser extends QueryParser {
       return 0;
    }
 
-
-
-   // Given a list of postings and a docid,
-   // finds the tftd of the docId in the postings of that document.
-   private static int getPostingTftd(List<Posting> postings, int id){
+   // Given a list of postings, creates a map containing the docid as the key
+   // and the tftd as the values
+    private static HashMap<Integer, Integer> getTftdMap(List<Posting> postings){
+      HashMap<Integer, Integer> tftdmap = new HashMap<>();
       for(Posting p: postings){
-         if(p.getDocId() == id)
-            return p.getTftd();
+         tftdmap.put(p.getDocId(), p.getTftd());
       }
-      return 0;
+      return  tftdmap;
    }
 }
 

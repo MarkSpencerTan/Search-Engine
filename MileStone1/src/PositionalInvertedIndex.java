@@ -100,8 +100,10 @@ public class PositionalInvertedIndex {
       for(int j = 0; j < keys.size(); j++){
          avetftd = avetftd + weighttable.get(keys.get(j));
       }
+      if(weighttable.size()>0)
+         return avetftd/weighttable.size();
 
-      return avetftd/weighttable.size();
+      return avetftd;
    }
 
    public double getDoclengthD(){
