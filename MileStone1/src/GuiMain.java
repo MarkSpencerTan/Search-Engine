@@ -226,9 +226,9 @@ public class GuiMain extends Application{
          }
       }
       if(isRanked)
-         outputcontent.append("\nResults Returned: "+ rankedresults.size());
+         outputcontent.append("\n"+ rankedresults.size()+" Results Returned");
       else
-         outputcontent.append("\nTop "+ results.size()+" Results Returned");
+         outputcontent.append("\nResults Returned: "+ results.size());
 
       //if no results are found
       if(results == null || (results.isEmpty()&& rankedresults.isEmpty()))
@@ -294,6 +294,7 @@ public class GuiMain extends Application{
          mFormula = "tf-idf";
       }
       else if(selected.equals("Okapi BM25")){
+         System.out.println("selected:"+selected);
          mFormula = "Okapi BM25";
       }
       else if(selected.equals("Wacky")){
