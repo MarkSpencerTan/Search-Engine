@@ -1,4 +1,5 @@
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -34,7 +35,6 @@ public class QueryParser {
             else  //parse phrase query
                ormerge =  andMerge(phraseParser(andsplit[j].split(" "), index), ormerge);
          }
-         //
          postings = orMerge(ormerge, postings);
       }
       return postings;
@@ -46,23 +46,28 @@ public class QueryParser {
       DocumentProcessing dp = new DocumentProcessing();
       List<Integer> result = new ArrayList<>();
 
-      arr[0] = dp.normalizeToken(arr[0]);
-      List<Integer> commondocs = getDocList(index.getPostings(arr[0]));
+      HashMap<String, List<Posting>> postingmap = new HashMap<String, List<Posting>>();
+      for(int i=0; i<arr.length; i++){
+         arr[i] = dp.normalizeToken(arr[i]);
+         postingmap.put(arr[i], index.getPostings(arr[i]));
+      }
+      
+      List<Integer> commondocs = getDocList(postingmap.get(arr[0]));
       //normalize the phrases and And-Merge all the documents of each word in the phrase
       for(int j=1; j<arr.length; j++){
          arr[j] = dp.normalizeToken(arr[j]);
-         commondocs = andMerge(getDocList(index.getPostings(arr[j])), commondocs);
+         commondocs = andMerge(getDocList(postingmap.get(arr[j])), commondocs);
       }
       //loop through common documents
       for(int j=0; j<commondocs.size();j++){
          boolean matched = false;
          //first word
-         List<Integer> pos1 = getPositions(index.getPostings(arr[0]), commondocs.get(j));
+         List<Integer> pos1 = getPositions(postingmap.get(arr[0]), commondocs.get(j));
          //loop through rest of the phrase array
          for(Integer p : pos1){
             int savednum = p+1;
             for(int i=1; i<arr.length;i++){
-               List<Integer> pos2 = getPositions(index.getPostings(arr[i]), commondocs.get(j));
+               List<Integer> pos2 = getPositions(postingmap.get(arr[i]), commondocs.get(j));
 
                if(pos2.contains(savednum)){
                   if(i==arr.length-1) { //if evaluating last word in the phrase array
