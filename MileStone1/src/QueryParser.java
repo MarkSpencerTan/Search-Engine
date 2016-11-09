@@ -51,7 +51,7 @@ public class QueryParser {
          arr[i] = dp.normalizeToken(arr[i]);
          postingmap.put(arr[i], index.getPostings(arr[i]));
       }
-      
+
       List<Integer> commondocs = getDocList(postingmap.get(arr[0]));
       //normalize the phrases and And-Merge all the documents of each word in the phrase
       for(int j=1; j<arr.length; j++){
