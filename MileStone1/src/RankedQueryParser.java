@@ -118,7 +118,6 @@ public class RankedQueryParser extends QueryParser {
       }
       else if(formula.equals("Okapi BM25")){
          double kd = 1.2 * (.25 + (.75 * (weights.get(1)/docLengthA)) );
-         System.out.println("kd: "+kd);
          return (2.2 * tftd ) / (kd + tftd);
       }
       else if(formula.equals("Wacky")){
